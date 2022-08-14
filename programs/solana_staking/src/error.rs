@@ -3,5 +3,14 @@ use anchor_lang::prelude::*;
 #[error_code]
 pub enum StakingError {
     #[msg("Invalid token account")]
-    InvalidTokenAccount
+    InvalidTokenAccount,
+    #[msg("Previous round is not finished")]
+    PrevRoundIsNotFinished,
+    #[msg("Too few token amount to buy")]
+    TooFewAmount,
+    #[msg("Invalid token mint")]
+    InvalidMint
+
+
+
 }

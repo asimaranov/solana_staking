@@ -7,6 +7,11 @@ pub struct Staking {
     pub rounds_num: u64,
     pub fctr_mint: Pubkey,
     pub bcdev_mint: Pubkey,
+    pub last_round_deadline: u64,
+    pub round_start_times: Vec<u64>,
+    pub total_fctr_bought_by_users: u64,
+    pub total_fctr_sold_by_users: u64,
+    pub total_bcdev_sold_by_users: u64,
     pub bump: u8
 }
 

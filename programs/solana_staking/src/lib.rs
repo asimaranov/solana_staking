@@ -13,7 +13,8 @@ declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 
 #[program]
 pub mod solana_staking {    
-    use anchor_spl::token::{Transfer, self};
+    use anchor_lang::solana_program::native_token::LAMPORTS_PER_SOL;
+    use anchor_spl::token::{Transfer, self, MintTo, Burn};
 
     use super::*;
 
@@ -34,7 +35,7 @@ pub mod solana_staking {
         Ok(())
     }
 
-    pub fn stake(ctx: Context<Stake>) -> Result<()>{
+    pub fn stake(ctx: Context<Stake>) -> Result<()> {
         let staking = &mut ctx.accounts.staking;
         let staker_info = &mut ctx.accounts.staker_info;
 
@@ -66,11 +67,97 @@ pub mod solana_staking {
         let staking = &mut ctx.accounts.staking;
         let round = &mut ctx.accounts.round;
 
-        round.start_time = Clock::get().unwrap().unix_timestamp as u64;
+        let current_time = Clock::get().unwrap().unix_timestamp as u64;
+
+        require!(current_time >= staking.last_round_deadline, StakingError::PrevRoundIsNotFinished);
+        
+        round.start_time = current_time;
         round.is_final = is_final;
         staking.rounds_num += 1;
+        staking.last_round_deadline = current_time + staking.round_time;
+
+        staking.round_start_times.push(current_time);
 
         Ok(())
     }
+
+    pub fn buy_fctr(ctx: Context<BuyFctr>, amount: u64) -> Result<()> {
+        let staking = &mut ctx.accounts.staking;
+        require!(amount > 10, StakingError::TooFewAmount);
+        require!(ctx.accounts.fctr_mint.key() == staking.fctr_mint, StakingError::InvalidMint);
+
+        let sol_to_withdraw = amount * LAMPORTS_PER_SOL / 109;
+
+        **ctx.accounts.user.try_borrow_mut_lamports()? -= sol_to_withdraw;
+
+        let staking_bump = staking.bump.to_le_bytes();
+        let seeds = &[b"staking".as_ref(), staking_bump.as_ref()];
+        let signer_seeds = [&seeds[..]];
+
+        let cpi_ctx = CpiContext::new_with_signer(
+            ctx.accounts.token_program.to_account_info(), 
+            MintTo { mint: ctx.accounts.fctr_mint.to_account_info(), to: ctx.accounts.user.to_account_info(), authority: staking.to_account_info() }, 
+            &signer_seeds
+        );
+
+        token::mint_to(cpi_ctx, amount)?;
+
+        staking.total_fctr_bought_by_users += amount;
+
+        Ok(())
+    }
+
+    pub fn sell_fctr(ctx: Context<SellFctr>, amount: u64) -> Result<()> {
+        let staking = &mut ctx.accounts.staking;
+
+        require!(ctx.accounts.fctr_mint.key() == staking.fctr_mint, StakingError::InvalidMint);
+
+        let sol_to_give = amount * LAMPORTS_PER_SOL / 101;
+
+        **ctx.accounts.user.try_borrow_mut_lamports()? += sol_to_give;
+
+        let staking_bump = staking.bump.to_le_bytes();
+        let seeds = &[b"staking".as_ref(), staking_bump.as_ref()];
+        let signer_seeds = [&seeds[..]];
+
+        let cpi_ctx = CpiContext::new_with_signer(
+            ctx.accounts.token_program.to_account_info(), 
+            Burn { mint: ctx.accounts.fctr_mint.to_account_info(), from: ctx.accounts.user.to_account_info(), authority: staking.to_account_info() }, 
+            &signer_seeds
+        );
+
+        token::burn(cpi_ctx, amount)?;
+
+        staking.total_fctr_sold_by_users += amount;
+
+        Ok(())
+    }
+
+    pub fn sell_bcdev(ctx: Context<SellBcdev>, amount: u64) -> Result<()> {
+        let staking = &mut ctx.accounts.staking;
+
+        require!(ctx.accounts.bcdev_mint.key() == staking.bcdev_mint, StakingError::InvalidMint);
+
+        let sol_to_give = amount * LAMPORTS_PER_SOL / 11;
+
+        **ctx.accounts.user.try_borrow_mut_lamports()? += sol_to_give;
+
+        let staking_bump = staking.bump.to_le_bytes();
+        let seeds = &[b"staking".as_ref(), staking_bump.as_ref()];
+        let signer_seeds = [&seeds[..]];
+
+        let cpi_ctx = CpiContext::new_with_signer(
+            ctx.accounts.token_program.to_account_info(), 
+            Burn { mint: ctx.accounts.bcdev_mint.to_account_info(), from: ctx.accounts.user.to_account_info(), authority: staking.to_account_info() }, 
+            &signer_seeds
+        );
+
+        token::burn(cpi_ctx, amount)?;
+
+        staking.total_bcdev_sold_by_users += amount;
+
+        Ok(())
+    }
+
 }
 

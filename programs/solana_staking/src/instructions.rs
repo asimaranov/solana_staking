@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::{Token, TokenAccount};
+use anchor_spl::token::{Token, TokenAccount, Mint};
 
 use crate::state::{Staking, StakerInfo, Round};
 
@@ -47,6 +47,60 @@ pub struct StartRound<'info> {
     pub round: Account<'info, Round>,
     #[account(mut)]
     pub owner: Signer<'info>,
+    pub token_program: Program<'info, Token>,
+    pub system_program: Program<'info, System>
+}
+
+#[derive(Accounts)]
+pub struct BuyFctr<'info> {
+    #[account(mut, seeds=[b"staking"], bump)]
+    pub staking: Account<'info, Staking>,
+
+    #[account(mut)]
+    pub user: Signer<'info>,
+
+    #[account(mut)]
+    pub fctr_mint: Account<'info, Mint>,
+
+    #[account(mut, token::authority=user, token::mint=fctr_mint)]
+    pub user_fctr_account: Account<'info, TokenAccount>,
+
+    pub token_program: Program<'info, Token>,
+    pub system_program: Program<'info, System>
+}
+
+#[derive(Accounts)]
+pub struct SellFctr<'info> {
+    #[account(mut, seeds=[b"staking"], bump)]
+    pub staking: Account<'info, Staking>,
+
+    #[account(mut)]
+    pub user: Signer<'info>,
+
+    #[account(mut)]
+    pub fctr_mint: Account<'info, Mint>,
+
+    #[account(mut, token::authority=staking, token::mint=fctr_mint)]
+    pub service_fctr_account: Account<'info, TokenAccount>,
+
+    pub token_program: Program<'info, Token>,
+    pub system_program: Program<'info, System>
+}
+
+#[derive(Accounts)]
+pub struct SellBcdev<'info> {
+    #[account(mut, seeds=[b"staking"], bump)]
+    pub staking: Account<'info, Staking>,
+
+    #[account(mut)]
+    pub user: Signer<'info>,
+
+    #[account(mut)]
+    pub bcdev_mint: Account<'info, Mint>,
+
+    #[account(mut, token::authority=staking, token::mint=bcdev_mint)]
+    pub service_bcdev_account: Account<'info, TokenAccount>,
+
     pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>
 }
