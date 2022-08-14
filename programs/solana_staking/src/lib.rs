@@ -34,7 +34,7 @@ pub mod solana_staking {
         Ok(())
     }
 
-    pub fn stake(ctx: Context<Stake>, amount: u64 ) -> Result<()>{
+    pub fn stake(ctx: Context<Stake>) -> Result<()>{
         let staking = &mut ctx.accounts.staking;
         let staker_info = &mut ctx.accounts.staker_info;
 
@@ -53,9 +53,22 @@ pub mod solana_staking {
                 authority: ctx.accounts.staker.to_account_info()
             }, 
             &outer);
+        
+        let amount = ctx.accounts.staker_fctr_account.amount;
 
         token::transfer(cpi_ctx, amount)?;
         staker_info.stake_size += amount;
+
+        Ok(())
+    }
+
+    pub fn start_round(ctx: Context<StartRound>, is_final: bool) -> Result<()>{
+        let staking = &mut ctx.accounts.staking;
+        let round = &mut ctx.accounts.round;
+
+        round.start_time = Clock::get().unwrap().unix_timestamp as u64;
+        round.is_final = is_final;
+        staking.rounds_num += 1;
 
         Ok(())
     }

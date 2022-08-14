@@ -1,11 +1,11 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::{Token, TokenAccount};
 
-use crate::state::{Staking, StakerInfo};
+use crate::state::{Staking, StakerInfo, Round};
 
 #[derive(Accounts)]
 pub struct Initialize<'info> {
-    #[account(init, payer=owner, space = 8 + Staking::MAX_SIZE, seeds=[b"staking"], bump)]
+    #[account(init, payer=owner, space = 8 + Staking::LEN, seeds=[b"staking"], bump)]
     pub staking: Account<'info, Staking>,
 
     #[account(mut)]
@@ -20,7 +20,7 @@ pub struct Initialize<'info> {
 pub struct Register<'info> {
     #[account(mut)]
     pub staker: Signer<'info>,
-    #[account(init, payer=staker, space = 8 + StakerInfo::MAX_SIZE, seeds = [b"staker-info", staker.key().as_ref()], bump)]
+    #[account(init, payer=staker, space = 8 + StakerInfo::LEN, seeds = [b"staker-info", staker.key().as_ref()], bump)]
     pub staker_info: Account<'info, StakerInfo>,
     pub system_program: Program<'info, System>
 }
@@ -37,4 +37,16 @@ pub struct Stake<'info> {
     pub staking_fctr_account: Account<'info, TokenAccount>,
     pub staker: Signer<'info>,
     pub token_program: Program<'info, Token>
+}
+
+#[derive(Accounts)]
+pub struct StartRound<'info> {
+    #[account(mut, seeds=[b"staking"], bump)]
+    pub staking: Account<'info, Staking>,
+    #[account(init, seeds=[b"round", staking.rounds_num.to_le_bytes().as_ref()], space=8+Round::LEN, payer=owner, bump)]
+    pub round: Account<'info, Round>,
+    #[account(mut)]
+    pub owner: Signer<'info>,
+    pub token_program: Program<'info, Token>,
+    pub system_program: Program<'info, System>
 }

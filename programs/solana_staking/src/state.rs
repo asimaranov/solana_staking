@@ -4,13 +4,14 @@ use anchor_lang::prelude::*;
 pub struct Staking {
     pub owner: Pubkey,
     pub round_time: u64,
+    pub rounds_num: u64,
     pub fctr_mint: Pubkey,
     pub bcdev_mint: Pubkey,
     pub bump: u8
 }
 
 impl Staking {
-    pub const MAX_SIZE: usize = 32 + 8 + 1;
+    pub const LEN: usize = 32 + 8 + 1;
 }
 
 #[account]
@@ -21,12 +22,20 @@ pub struct StakerInfo {
 }
 
 impl StakerInfo {
-    pub const MAX_SIZE: usize = 32 + 1;
+    pub const LEN: usize = 32 + 1;
 }
 
 #[account]
 pub struct Round {
     pub is_final: bool,
+    pub is_finished: bool,
+    pub start_time: u64,
     pub treasury: u64,
     pub bump: u8
 }
+
+
+impl Round {
+    pub const LEN: usize = 1 + 1 + 8 + 1;
+}
+
