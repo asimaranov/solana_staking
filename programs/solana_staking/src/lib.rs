@@ -37,12 +37,12 @@ pub mod solana_staking {
         let staking = &mut ctx.accounts.staking;
         let staker_info = &mut ctx.accounts.staker_info;
 
+        require!(ctx.accounts.staking_fctr_account.mint == staking.fctr_mint, StakingError::InvalidTokenAccount);
+        require!(ctx.accounts.staker_fctr_account.mint == staking.fctr_mint, StakingError::InvalidTokenAccount);
+
         let staking_bump = staking.bump.to_le_bytes();
         let seeds = &[b"staking".as_ref(), staking_bump.as_ref()];
         let outer = [&seeds[..]];
-        
-        require!(ctx.accounts.staking_fctr_account.mint == staking.fctr_mint, StakingError::InvalidTokenAccount);
-        require!(ctx.accounts.staker_fctr_account.mint == staking.fctr_mint, StakingError::InvalidTokenAccount);
 
         let cpi_ctx = CpiContext::new_with_signer(
             ctx.accounts.token_program.to_account_info(), 
@@ -178,6 +178,41 @@ pub mod solana_staking {
         token::burn(cpi_ctx, amount)?;
 
         staking.total_bcdev_sold_by_users += amount;
+
+        Ok(())
+    }
+
+    pub fn entrust(ctx: Context<Entrust>, confidant: Pubkey, amount: u64) -> Result<()> {
+        let principal_fctr_account = &mut ctx.accounts.principal_fctr_account;
+        let confidant_fctr_account = &mut ctx.accounts.confidant_fctr_account;
+        let principal_info = &mut ctx.accounts.principal_info;
+        let confidant_info = &mut ctx.accounts.confidant_info;
+
+        require!(confidant_fctr_account.owner == confidant, StakingError::InvalidTokenAccount);
+        require!(principal_fctr_account.amount >= amount && principal_info.ftcr_amount >= amount, StakingError::InvalidTokenAccount);
+
+        let staking = &mut ctx.accounts.staking;
+
+        principal_info.is_in_trust_program = true;
+        confidant_info.is_in_trust_program = true;
+
+        let staking_bump = staking.bump.to_le_bytes();
+        let seeds = &[b"staking".as_ref(), staking_bump.as_ref()];
+        let outer = [&seeds[..]];
+
+        let cpi_ctx = CpiContext::new_with_signer(
+            ctx.accounts.token_program.to_account_info(), 
+            Transfer {
+                from: principal_fctr_account.to_account_info(),
+                to: confidant_fctr_account.to_account_info(), 
+                authority: ctx.accounts.principal.to_account_info()
+            }, 
+            &outer);
+        
+        token::transfer(cpi_ctx, amount)?;
+
+        principal_info.ftcr_amount -= amount;
+        confidant_info.ftcr_amount += amount;
 
         Ok(())
     }
