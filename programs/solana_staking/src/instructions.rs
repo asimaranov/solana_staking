@@ -40,6 +40,24 @@ pub struct Stake<'info> {
 }
 
 #[derive(Accounts)]
+pub struct Unstake<'info> {
+    #[account(mut, seeds=[b"staking"], bump)]
+    pub staking: Account<'info, Staking>,
+    #[account(mut, seeds=[b"staker-info", staker.key().as_ref()], bump)]
+    pub staker_info: Account<'info, StakerInfo>,
+    #[account(mut, token::authority=staker)]
+    pub staker_fctr_account: Account<'info, TokenAccount>,
+    #[account(mut, token::authority=staking)]
+    pub staking_fctr_account: Account<'info, TokenAccount>,
+    #[account(mut, token::authority=staker)]
+    pub staker_bcdev_account: Account<'info, TokenAccount>,
+    #[account(mut)]
+    pub bcdev_mint: Account<'info, Mint>,
+    pub staker: Signer<'info>,
+    pub token_program: Program<'info, Token>
+}
+
+#[derive(Accounts)]
 pub struct StartRound<'info> {
     #[account(mut, seeds=[b"staking"], bump)]
     pub staking: Account<'info, Staking>,
@@ -59,6 +77,9 @@ pub struct BuyFctr<'info> {
     #[account(mut)]
     pub user: Signer<'info>,
 
+    #[account(mut, seeds=[b"staker-info", user.key().as_ref()], bump)]
+    pub staker_info: Account<'info, StakerInfo>,
+
     #[account(mut)]
     pub fctr_mint: Account<'info, Mint>,
 
@@ -77,11 +98,18 @@ pub struct SellFctr<'info> {
     #[account(mut)]
     pub user: Signer<'info>,
 
+    #[account(mut, seeds=[b"staker-info", user.key().as_ref()], bump)]
+    pub staker_info: Account<'info, StakerInfo>,
+
     #[account(mut)]
     pub fctr_mint: Account<'info, Mint>,
 
     #[account(mut, token::authority=staking, token::mint=fctr_mint)]
     pub service_fctr_account: Account<'info, TokenAccount>,
+
+    #[account(mut, token::authority=user, token::mint=fctr_mint)]
+    pub user_fctr_account: Account<'info, TokenAccount>,
+
 
     pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>
@@ -94,6 +122,12 @@ pub struct SellBcdev<'info> {
 
     #[account(mut)]
     pub user: Signer<'info>,
+
+    #[account(mut, token::authority=user, token::mint=bcdev_mint)]
+    pub user_bcdev_account: Account<'info, TokenAccount>,
+
+    #[account(mut, seeds=[b"staker-info", user.key().as_ref()], bump)]
+    pub staker_info: Account<'info, StakerInfo>,
 
     #[account(mut)]
     pub bcdev_mint: Account<'info, Mint>,

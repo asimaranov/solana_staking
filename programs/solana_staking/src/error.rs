@@ -9,7 +9,10 @@ pub enum StakingError {
     #[msg("Too few token amount to buy")]
     TooFewAmount,
     #[msg("Invalid token mint")]
-    InvalidMint
+    InvalidMint,
+    #[msg("Not enough tokens")]
+    NotEnoughTokens
+
 
 
 

@@ -23,11 +23,14 @@ impl Staking {
 pub struct StakerInfo {
     pub staker: Pubkey,
     pub stake_size: u64,
+    pub stake_time: u64,
+    pub ftcr_amount: u64,
+    pub bcdev_amount: u64,
     pub bump: u8
 }
 
 impl StakerInfo {
-    pub const LEN: usize = 32 + 1;
+    pub const LEN: usize = 32 + 8 + 8 + 1;
 }
 
 #[account]
@@ -38,7 +41,6 @@ pub struct Round {
     pub treasury: u64,
     pub bump: u8
 }
-
 
 impl Round {
     pub const LEN: usize = 1 + 1 + 8 + 1;

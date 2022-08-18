@@ -7,9 +7,7 @@ pub mod error;
 use instructions::*;
 use error::StakingError;
 
-
 declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
-
 
 #[program]
 pub mod solana_staking {    
@@ -42,7 +40,7 @@ pub mod solana_staking {
         let staking_bump = staking.bump.to_le_bytes();
         let seeds = &[b"staking".as_ref(), staking_bump.as_ref()];
         let outer = [&seeds[..]];
-
+        
         require!(ctx.accounts.staking_fctr_account.mint == staking.fctr_mint, StakingError::InvalidTokenAccount);
         require!(ctx.accounts.staker_fctr_account.mint == staking.fctr_mint, StakingError::InvalidTokenAccount);
 
@@ -58,12 +56,29 @@ pub mod solana_staking {
         let amount = ctx.accounts.staker_fctr_account.amount;
 
         token::transfer(cpi_ctx, amount)?;
+
+        let current_time = Clock::get().unwrap().unix_timestamp as u64;
+
         staker_info.stake_size += amount;
 
         Ok(())
     }
 
-    pub fn start_round(ctx: Context<StartRound>, is_final: bool) -> Result<()>{
+    pub fn unstake(ctx: Context<Unstake>) -> Result<()>{
+        let staker_info = &mut ctx.accounts.staker_info;
+        let staking = &mut ctx.accounts.staking;
+        let stake_round_id = staking.round_start_times.binary_search(&staker_info.stake_time).unwrap_or_else(|x| x-1);
+        let round_start_time = staking.round_start_times.last().unwrap();
+        let current_time = Clock::get().unwrap().unix_timestamp as u64;
+
+        let start_round_offset = staker_info.stake_time - staking.round_start_times[stake_round_id];
+        let end_round_offset = current_time - round_start_time;
+
+        let bcdev_to_give = staker_info.stake_size ;
+        Ok(())
+    }
+
+    pub fn start_round(ctx: Context<StartRound>, is_final: bool) -> Result<()> {
         let staking = &mut ctx.accounts.staking;
         let round = &mut ctx.accounts.round;
 
@@ -83,8 +98,12 @@ pub mod solana_staking {
 
     pub fn buy_fctr(ctx: Context<BuyFctr>, amount: u64) -> Result<()> {
         let staking = &mut ctx.accounts.staking;
+        let staker_info = &mut ctx.accounts.staker_info;
+
         require!(amount > 10, StakingError::TooFewAmount);
         require!(ctx.accounts.fctr_mint.key() == staking.fctr_mint, StakingError::InvalidMint);
+
+        staker_info.ftcr_amount += amount;
 
         let sol_to_withdraw = amount * LAMPORTS_PER_SOL / 109;
 
@@ -109,8 +128,10 @@ pub mod solana_staking {
 
     pub fn sell_fctr(ctx: Context<SellFctr>, amount: u64) -> Result<()> {
         let staking = &mut ctx.accounts.staking;
+        let staker_info = &mut ctx.accounts.staker_info;
 
         require!(ctx.accounts.fctr_mint.key() == staking.fctr_mint, StakingError::InvalidMint);
+        require!(staker_info.ftcr_amount >= amount && ctx.accounts.user_fctr_account.amount >= amount, StakingError::NotEnoughTokens);
 
         let sol_to_give = amount * LAMPORTS_PER_SOL / 101;
 
@@ -122,7 +143,7 @@ pub mod solana_staking {
 
         let cpi_ctx = CpiContext::new_with_signer(
             ctx.accounts.token_program.to_account_info(), 
-            Burn { mint: ctx.accounts.fctr_mint.to_account_info(), from: ctx.accounts.user.to_account_info(), authority: staking.to_account_info() }, 
+            Burn { mint: ctx.accounts.fctr_mint.to_account_info(), from: ctx.accounts.user_fctr_account.to_account_info(), authority: staking.to_account_info() }, 
             &signer_seeds
         );
 
@@ -135,8 +156,10 @@ pub mod solana_staking {
 
     pub fn sell_bcdev(ctx: Context<SellBcdev>, amount: u64) -> Result<()> {
         let staking = &mut ctx.accounts.staking;
+        let staker_info = &mut ctx.accounts.staker_info;
 
         require!(ctx.accounts.bcdev_mint.key() == staking.bcdev_mint, StakingError::InvalidMint);
+        require!(staker_info.bcdev_amount >= amount && ctx.accounts.user_bcdev_account.amount >= amount, StakingError::NotEnoughTokens);
 
         let sol_to_give = amount * LAMPORTS_PER_SOL / 11;
 
