@@ -32,9 +32,9 @@ pub mod solana_staking {
         require!(ctx.accounts.staking_fctr_account.mint == staking.fctr_mint, StakingError::InvalidTokenAccount);
 
         let staking_fctr_account = &mut ctx.accounts.staking_fctr_account;
-        let owner_fctr_account = &mut ctx.accounts.staking_fctr_account;
+        let owner_fctr_account = &mut ctx.accounts.owner_fctr_account;
 
-        require!(ctx.accounts.owner.key() == staking.owner());
+        require!(ctx.accounts.owner.key() == staking.owner, StakingError::NotTheOwner);
 
         let staking_bump = staking.bump.to_le_bytes();
         let seeds = &[b"staking".as_ref(), staking_bump.as_ref()];
