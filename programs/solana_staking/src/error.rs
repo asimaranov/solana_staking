@@ -11,7 +11,9 @@ pub enum StakingError {
     #[msg("Invalid token mint")]
     InvalidMint,
     #[msg("Not enough tokens")]
-    NotEnoughTokens
+    NotEnoughTokens,
+    #{msg("Can't buy if in trust program")}
+    CantBuyInTrustProgram
 
 
 

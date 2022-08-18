@@ -26,6 +26,34 @@ pub mod solana_staking {
         Ok(())
     }
 
+    pub fn fund(ctx: Context<Fund>, amount: u64) -> Result<()> {
+        let staking = &mut ctx.accounts.staking;
+
+        require!(ctx.accounts.staking_fctr_account.mint == staking.fctr_mint, StakingError::InvalidTokenAccount);
+
+        let staking_fctr_account = &mut ctx.accounts.staking_fctr_account;
+        let owner_fctr_account = &mut ctx.accounts.staking_fctr_account;
+
+        require!(ctx.accounts.owner.key() == staking.owner());
+
+        let staking_bump = staking.bump.to_le_bytes();
+        let seeds = &[b"staking".as_ref(), staking_bump.as_ref()];
+        let outer = [&seeds[..]];
+
+        let cpi_ctx = CpiContext::new_with_signer(
+            ctx.accounts.token_program.to_account_info(), 
+            Transfer {
+                from: owner_fctr_account.to_account_info(),
+                to: staking_fctr_account.to_account_info(), 
+                authority: ctx.accounts.owner.to_account_info()
+            }, 
+            &outer);
+        
+        token::transfer(cpi_ctx, amount)?;
+
+        Ok(())
+    }
+
     pub fn register(ctx: Context<Register>) -> Result<()> {
         let staker_info = &mut ctx.accounts.staker_info;
         staker_info.staker = ctx.accounts.staker.key();
@@ -58,7 +86,7 @@ pub mod solana_staking {
         token::transfer(cpi_ctx, amount)?;
 
         let current_time = Clock::get().unwrap().unix_timestamp as u64;
-
+        
         staker_info.stake_size += amount;
 
         Ok(())
@@ -102,6 +130,7 @@ pub mod solana_staking {
 
         require!(amount > 10, StakingError::TooFewAmount);
         require!(ctx.accounts.fctr_mint.key() == staking.fctr_mint, StakingError::InvalidMint);
+        require!(!staker_info.is_in_trust_program, StakingError::CantBuyInTrustProgram);
 
         staker_info.ftcr_amount += amount;
 

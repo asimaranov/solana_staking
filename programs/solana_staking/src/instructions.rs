@@ -17,6 +17,24 @@ pub struct Initialize<'info> {
 }
 
 #[derive(Accounts)]
+pub struct Fund<'info> {
+    #[account(init, payer=owner, space = 8 + Staking::LEN, seeds=[b"staking"], bump)]
+    pub staking: Account<'info, Staking>,
+
+    #[account(mut, token::authority=staking)]
+    pub staking_fctr_account: Account<'info, TokenAccount>,
+
+    #[account(mut, token::authority=owner)]
+    pub owner_fctr_account: Account<'info, TokenAccount>,
+
+    #[account(mut)]
+    pub owner: Signer<'info>,
+    pub system_program: Program<'info, System>,
+    pub token_program: Program<'info, Token>
+}
+
+
+#[derive(Accounts)]
 pub struct Register<'info> {
     #[account(mut)]
     pub staker: Signer<'info>,
