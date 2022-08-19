@@ -132,6 +132,7 @@ pub mod solana_staking {
         require!(ctx.accounts.fctr_mint.key() == staking.fctr_mint, StakingError::InvalidMint);
         require!(!staker_info.is_in_trust_program, StakingError::CantBuyInTrustProgram);
 
+        staker_info.bought_fctr += amount;
         staker_info.ftcr_amount += amount;
 
         let sol_to_withdraw = amount * LAMPORTS_PER_SOL / 109;
@@ -211,14 +212,17 @@ pub mod solana_staking {
         Ok(())
     }
 
-    pub fn entrust(ctx: Context<Entrust>, confidant: Pubkey, amount: u64) -> Result<()> {
+    pub fn entrust(ctx: Context<Entrust>, confidant: Pubkey) -> Result<()> {
         let principal_fctr_account = &mut ctx.accounts.principal_fctr_account;
         let confidant_fctr_account = &mut ctx.accounts.confidant_fctr_account;
         let principal_info = &mut ctx.accounts.principal_info;
         let confidant_info = &mut ctx.accounts.confidant_info;
 
+        let amount = principal_fctr_account.amount / 2;
+
         require!(confidant_fctr_account.owner == confidant, StakingError::InvalidTokenAccount);
         require!(principal_fctr_account.amount >= amount && principal_info.ftcr_amount >= amount, StakingError::InvalidTokenAccount);
+        require!(principal_fctr_account.amount >= principal_info.bought_fctr / 4 && principal_info.ftcr_amount >= principal_info.bought_fctr / 4, StakingError::InvalidAmountEntrusted);
 
         let staking = &mut ctx.accounts.staking;
 

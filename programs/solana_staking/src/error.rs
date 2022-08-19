@@ -16,7 +16,8 @@ pub enum StakingError {
     CantBuyInTrustProgram,
     #[msg("Not the owner")]
     NotTheOwner,
-
+    #[msg("Invalid amont entrusted")]
+    InvalidAmountEntrusted
 
 
 

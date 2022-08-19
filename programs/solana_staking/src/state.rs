@@ -27,6 +27,7 @@ pub struct StakerInfo {
     pub stake_time: u64,
     pub ftcr_amount: u64,
     pub bcdev_amount: u64,
+    pub bought_fctr: u64,
     pub entrusted_tokens: bool,
     pub is_in_trust_program: bool,
     pub bump: u8
