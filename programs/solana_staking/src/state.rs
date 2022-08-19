@@ -5,18 +5,19 @@ pub struct Staking {
     pub owner: Pubkey,
     pub round_time: u64,
     pub rounds_num: u64,
-    pub fctr_mint: Pubkey,
-    pub bcdev_mint: Pubkey,
     pub last_round_deadline: u64,
-    pub round_start_times: Vec<u64>,
     pub total_fctr_bought_by_users: u64,
     pub total_fctr_sold_by_users: u64,
     pub total_bcdev_sold_by_users: u64,
+
+    pub fctr_mint: Pubkey,
+    pub bcdev_mint: Pubkey,
+    pub round_start_times: Vec<u64>,
     pub bump: u8
 }
 
 impl Staking {
-    pub const LEN: usize = 32 + 8 + 1;
+    pub const LEN: usize = 32 + 8 * 6 + 32 * 2 + (4 + 8 * 100) + 1;
 }
 
 
