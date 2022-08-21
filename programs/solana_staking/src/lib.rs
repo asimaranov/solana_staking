@@ -16,6 +16,9 @@ pub mod solana_staking {
 
     use super::*;
 
+    const ONE_FCTR: u64 = 10_u64.pow(12);
+    const ONE_BCDEV: u64 = 10_u64.pow(18);
+
     pub fn initialize(ctx: Context<Initialize>, round_time: u64, fctr_mint: Pubkey, bcdev_mint: Pubkey) -> Result<()> {
         let staking = &mut ctx.accounts.staking;
         staking.round_time = round_time;
@@ -110,7 +113,7 @@ pub mod solana_staking {
         let staking = &mut ctx.accounts.staking;
         let staker_info = &mut ctx.accounts.staker_info;
 
-        require!(amount > 10, StakingError::TooFewAmount);
+        require!(amount >= 10 * ONE_FCTR, StakingError::TooFewAmount);
         require!(ctx.accounts.fctr_mint.key() == staking.fctr_mint, StakingError::InvalidMint);
         require!(!staker_info.is_in_trust_program, StakingError::CantBuyInTrustProgram);
 
@@ -122,7 +125,7 @@ pub mod solana_staking {
         staker_info.bought_fctr += amount;
         staker_info.ftcr_amount += amount;
 
-        let sol_to_take = amount * LAMPORTS_PER_SOL / 10_u64.pow(12) / 109;
+        let sol_to_take = amount * LAMPORTS_PER_SOL / ONE_FCTR / 109;
 
         let transfer_instruction = system_instruction::transfer(&ctx.accounts.user.key(), &staking.key(), sol_to_take);
 
@@ -155,9 +158,10 @@ pub mod solana_staking {
         require!(ctx.accounts.fctr_mint.key() == staking.fctr_mint, StakingError::InvalidMint);
         require!(staker_info.ftcr_amount >= amount && ctx.accounts.user_fctr_account.amount >= amount, StakingError::NotEnoughTokens);
 
-        let sol_to_give = amount * LAMPORTS_PER_SOL / 101;
+        let sol_to_give = amount * LAMPORTS_PER_SOL * ONE_FCTR / 101;
 
-        **ctx.accounts.user.try_borrow_mut_lamports()? += sol_to_give;
+        **staking.to_account_info().try_borrow_mut_lamports()? -= sol_to_give;
+        **ctx.accounts.user.to_account_info().try_borrow_mut_lamports()? += sol_to_give;
 
         let staking_bump = staking.bump.to_le_bytes();
         let seeds = &[b"staking".as_ref(), staking_bump.as_ref()];
@@ -183,8 +187,9 @@ pub mod solana_staking {
         require!(ctx.accounts.bcdev_mint.key() == staking.bcdev_mint, StakingError::InvalidMint);
         require!(staker_info.bcdev_amount >= amount && ctx.accounts.user_bcdev_account.amount >= amount, StakingError::NotEnoughTokens);
 
-        let sol_to_give = amount * LAMPORTS_PER_SOL / 11;
+        let sol_to_give = amount * LAMPORTS_PER_SOL / ONE_BCDEV / 11;
 
+        **staking.to_account_info().try_borrow_mut_lamports()? -= sol_to_give;
         **ctx.accounts.user.try_borrow_mut_lamports()? += sol_to_give;
 
         let staking_bump = staking.bump.to_le_bytes();

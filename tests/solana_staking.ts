@@ -27,7 +27,7 @@ describe("solana_staking", () => {
 
 
   it("Is initialized!", async () => {
-    await program.provider.connection.confirmTransaction(await program.provider.connection.requestAirdrop(payer.publicKey, 100 * anchor.web3.LAMPORTS_PER_SOL));
+    await program.provider.connection.confirmTransaction(await program.provider.connection.requestAirdrop(payer.publicKey, 1000000 * anchor.web3.LAMPORTS_PER_SOL));
 
     [stakingPda, ] = await anchor.web3.PublicKey.findProgramAddress([utf8.encode("staking")], program.programId);
     
@@ -54,7 +54,7 @@ describe("solana_staking", () => {
   })
 
   it("Test fctr buying", async () => {
-    const testAmount = ONE_FCTR.div(new BN(10000));
+    const testAmount = new BN(10).mul(ONE_FCTR);
 
     const [stakerInfo, ] = await anchor.web3.PublicKey.findProgramAddress([utf8.encode("staker-info"), owner.publicKey.toBuffer()], program.programId);
     let userFctrAccount = await getOrCreateAssociatedTokenAccount(program.provider.connection, payer, fctrMint, owner.publicKey);

@@ -116,7 +116,6 @@ pub struct SellFctr<'info> {
     #[account(mut, token::authority=user, token::mint=fctr_mint)]
     pub user_fctr_account: Account<'info, TokenAccount>,
 
-
     pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>
 }
