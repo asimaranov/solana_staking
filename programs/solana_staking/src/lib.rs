@@ -11,7 +11,7 @@ declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 
 #[program]
 pub mod solana_staking {    
-    use anchor_lang::solana_program::native_token::LAMPORTS_PER_SOL;
+    use anchor_lang::solana_program::{native_token::LAMPORTS_PER_SOL, system_instruction, program::invoke};
     use anchor_spl::token::{Transfer, self, MintTo, Burn};
 
     use super::*;
@@ -83,10 +83,7 @@ pub mod solana_staking {
         
         let amount = ctx.accounts.staker_fctr_account.amount;
 
-        token::transfer(cpi_ctx, amount)?;
-
-        let current_time = Clock::get().unwrap().unix_timestamp as u64;
-        
+        token::transfer(cpi_ctx, amount)?;        
         staker_info.stake_size += amount;
 
         Ok(())
@@ -95,32 +92,17 @@ pub mod solana_staking {
     pub fn unstake(ctx: Context<Unstake>) -> Result<()>{
         let staker_info = &mut ctx.accounts.staker_info;
         let staking = &mut ctx.accounts.staking;
-        let stake_round_id = staking.round_start_times.binary_search(&staker_info.stake_time).unwrap_or_else(|x| x-1);
-        let round_start_time = staking.round_start_times.last().unwrap();
-        let current_time = Clock::get().unwrap().unix_timestamp as u64;
-
-        let start_round_offset = staker_info.stake_time - staking.round_start_times[stake_round_id];
-        let end_round_offset = current_time - round_start_time;
-
-        let bcdev_to_give = staker_info.stake_size ;
-        Ok(())
-    }
-
-    pub fn start_round(ctx: Context<StartRound>, is_final: bool) -> Result<()> {
-        let staking = &mut ctx.accounts.staking;
-        let round = &mut ctx.accounts.round;
 
         let current_time = Clock::get().unwrap().unix_timestamp as u64;
 
-        require!(current_time >= staking.last_round_deadline, StakingError::PrevRoundIsNotFinished);
+        let period = current_time - staker_info.last_update_timestamp;
+        staker_info.pending_bcdev_reward += period * staker_info.ftcr_amount * staker_info.user_rpr;
+
         
-        round.start_time = current_time;
-        round.is_final = is_final;
-        staking.rounds_num += 1;
-        staking.last_round_deadline = current_time + staking.round_time;
+        let bcdev_to_give = staker_info.pending_bcdev_reward;
+        staker_info.pending_bcdev_reward = 0;
 
-        staking.round_start_times.push(current_time);
-
+        
         Ok(())
     }
 
@@ -132,20 +114,30 @@ pub mod solana_staking {
         require!(ctx.accounts.fctr_mint.key() == staking.fctr_mint, StakingError::InvalidMint);
         require!(!staker_info.is_in_trust_program, StakingError::CantBuyInTrustProgram);
 
+        let current_time = Clock::get().unwrap().unix_timestamp as u64;
+        let period = current_time - staker_info.last_update_timestamp;
+        staker_info.pending_bcdev_reward += period * staker_info.ftcr_amount * staker_info.user_rpr;
+        staker_info.last_update_timestamp = current_time;
+
         staker_info.bought_fctr += amount;
         staker_info.ftcr_amount += amount;
 
         let sol_to_withdraw = amount * LAMPORTS_PER_SOL / 109;
 
-        **ctx.accounts.user.try_borrow_mut_lamports()? -= sol_to_withdraw;
+        let transfer_instruction = system_instruction::transfer(&ctx.accounts.user.key(), &staking.key(), sol_to_withdraw);
 
+        invoke(&transfer_instruction, &[
+            ctx.accounts.user.to_account_info(),
+            staking.to_account_info()
+        ])?;
+        
         let staking_bump = staking.bump.to_le_bytes();
         let seeds = &[b"staking".as_ref(), staking_bump.as_ref()];
         let signer_seeds = [&seeds[..]];
 
         let cpi_ctx = CpiContext::new_with_signer(
             ctx.accounts.token_program.to_account_info(), 
-            MintTo { mint: ctx.accounts.fctr_mint.to_account_info(), to: ctx.accounts.user.to_account_info(), authority: staking.to_account_info() }, 
+            MintTo { mint: ctx.accounts.fctr_mint.to_account_info(), to: ctx.accounts.user_fctr_account.to_account_info(), authority: staking.to_account_info() }, 
             &signer_seeds
         );
 

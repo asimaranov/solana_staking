@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::{Token, TokenAccount, Mint};
 
-use crate::{state::{Staking, StakerInfo, Round}, instruction};
+use crate::{state::{Staking, StakerInfo}};
 
 #[derive(Accounts)]
 pub struct Initialize<'info> {
@@ -73,18 +73,6 @@ pub struct Unstake<'info> {
     pub bcdev_mint: Account<'info, Mint>,
     pub staker: Signer<'info>,
     pub token_program: Program<'info, Token>
-}
-
-#[derive(Accounts)]
-pub struct StartRound<'info> {
-    #[account(mut, seeds=[b"staking"], bump)]
-    pub staking: Account<'info, Staking>,
-    #[account(init, seeds=[b"round", staking.rounds_num.to_le_bytes().as_ref()], space=8+Round::LEN, payer=owner, bump)]
-    pub round: Account<'info, Round>,
-    #[account(mut)]
-    pub owner: Signer<'info>,
-    pub token_program: Program<'info, Token>,
-    pub system_program: Program<'info, System>
 }
 
 #[derive(Accounts)]

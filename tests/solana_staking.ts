@@ -35,8 +35,38 @@ describe("solana_staking", () => {
     const tx = await program.methods.initialize(testRoundTime, fctrMint, bcdevMint).accounts({
       staking: stakingPda,
       stakingFctrAccount: stakingFctrAccount.address,
-      owner: owner.publicKey
+      owner: owner.publicKey,
+      
     }).rpc();
     console.log("Your transaction signature", tx);
   });
+
+  it("Test user registration", async () => {
+    const [stakerInfo, ] = await anchor.web3.PublicKey.findProgramAddress([utf8.encode("staker-info"), owner.publicKey.toBuffer()], program.programId);
+
+    await program.methods.register().accounts({
+      staker: owner.publicKey,
+      stakerInfo: stakerInfo
+    }).rpc()
+  })
+
+  it("Test fctr buying", async () => {
+    const testAmount = new anchor.BN(100000);
+
+    const [stakerInfo, ] = await anchor.web3.PublicKey.findProgramAddress([utf8.encode("staker-info"), owner.publicKey.toBuffer()], program.programId);
+    const userFctrAccount = await getOrCreateAssociatedTokenAccount(program.provider.connection, payer, fctrMint, owner.publicKey);
+    try {
+    const tx = await program.methods.buyFctr(testAmount).accounts({
+      staking: stakingPda,
+      fctrMint: fctrMint,
+      user: owner.publicKey,
+      stakerInfo: stakerInfo,
+      userFctrAccount: userFctrAccount.address
+    }).rpc()
+  } catch(e) {
+    console.log(e)
+  }
+
+    
+  })
 });
