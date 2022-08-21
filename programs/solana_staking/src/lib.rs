@@ -122,9 +122,9 @@ pub mod solana_staking {
         staker_info.bought_fctr += amount;
         staker_info.ftcr_amount += amount;
 
-        let sol_to_withdraw = amount * LAMPORTS_PER_SOL / 109;
+        let sol_to_take = amount * LAMPORTS_PER_SOL / 10_u64.pow(12) / 109;
 
-        let transfer_instruction = system_instruction::transfer(&ctx.accounts.user.key(), &staking.key(), sol_to_withdraw);
+        let transfer_instruction = system_instruction::transfer(&ctx.accounts.user.key(), &staking.key(), sol_to_take);
 
         invoke(&transfer_instruction, &[
             ctx.accounts.user.to_account_info(),
