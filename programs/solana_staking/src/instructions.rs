@@ -172,3 +172,9 @@ pub struct Entrust<'info> {
     pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>
 }
+
+#[derive(Accounts)]
+pub struct Stop<'info>{
+    #[account(mut, seeds=[b"staking"], bump)]
+    pub staking: Account<'info, Staking>
+}

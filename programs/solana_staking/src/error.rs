@@ -17,9 +17,8 @@ pub enum StakingError {
     #[msg("Not the owner")]
     NotTheOwner,
     #[msg("Invalid amont entrusted")]
-    InvalidAmountEntrusted
-
-
-
+    InvalidAmountEntrusted,
+    #[msg("Staking finished")]
+    StakingFinished
 
 }

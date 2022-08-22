@@ -68,6 +68,7 @@ pub mod solana_staking {
         let staking = &mut ctx.accounts.staking;
         let staker_info = &mut ctx.accounts.staker_info;
 
+        require!(!staking.finished, StakingError::StakingFinished);
         require!(ctx.accounts.staking_fctr_account.mint == staking.fctr_mint, StakingError::InvalidTokenAccount);
         require!(ctx.accounts.staker_fctr_account.mint == staking.fctr_mint, StakingError::InvalidTokenAccount);
 
@@ -104,6 +105,7 @@ pub mod solana_staking {
         let staker_info = &mut ctx.accounts.staker_info;
         let staking = &mut ctx.accounts.staking;
 
+        require!(!staking.finished, StakingError::StakingFinished);
         require!(ctx.accounts.bcdev_mint.key() == staking.bcdev_mint, StakingError::InvalidMint);
         require!(ctx.accounts.fctr_mint.key() == staking.fctr_mint, StakingError::InvalidMint);
 
@@ -142,6 +144,7 @@ pub mod solana_staking {
         let staking = &mut ctx.accounts.staking;
         let staker_info = &mut ctx.accounts.staker_info;
 
+        require!(!staking.finished, StakingError::StakingFinished);
         require!(amount >= 10 * ONE_FCTR, StakingError::TooFewAmount);
         require!(ctx.accounts.fctr_mint.key() == staking.fctr_mint, StakingError::InvalidMint);
         require!(!staker_info.is_in_trust_program, StakingError::CantBuyInTrustProgram);
@@ -185,6 +188,7 @@ pub mod solana_staking {
         let staking = &mut ctx.accounts.staking;
         let staker_info = &mut ctx.accounts.staker_info;
 
+        require!(!staking.finished, StakingError::StakingFinished);
         require!(ctx.accounts.fctr_mint.key() == staking.fctr_mint, StakingError::InvalidMint);
         require!(staker_info.ftcr_amount >= amount && ctx.accounts.user_fctr_account.amount >= amount, StakingError::NotEnoughTokens);
 
@@ -215,6 +219,7 @@ pub mod solana_staking {
         let staking = &mut ctx.accounts.staking;
         let staker_info = &mut ctx.accounts.staker_info;
 
+        require!(!staking.finished, StakingError::StakingFinished);
         require!(ctx.accounts.bcdev_mint.key() == staking.bcdev_mint, StakingError::InvalidMint);
         require!(staker_info.bcdev_amount >= amount && ctx.accounts.user_bcdev_account.amount >= amount, StakingError::NotEnoughTokens);
 
@@ -248,6 +253,7 @@ pub mod solana_staking {
 
         let amount = principal_fctr_account.amount / 2;
 
+        require!(!staking.finished, StakingError::StakingFinished);
         require!(confidant_fctr_account.owner == confidant, StakingError::InvalidTokenAccount);
         require!(principal_fctr_account.amount >= amount && principal_info.ftcr_amount >= amount, StakingError::InvalidTokenAccount);
         require!(principal_fctr_account.amount >= principal_info.bought_fctr / 4 && principal_info.ftcr_amount >= principal_info.bought_fctr / 4, StakingError::InvalidAmountEntrusted);
@@ -276,6 +282,15 @@ pub mod solana_staking {
         confidant_info.ftcr_amount += amount;
 
         Ok(())
+    }
+
+    pub fn stop(ctx: Context<Stop>) -> Result<()> {
+        let staking = &mut ctx.accounts.staking;
+        let current_time = Clock::get().unwrap().unix_timestamp as u64;
+
+        staking.finished = true;
+        staking.finish_time = current_time;
+        return Ok(());
     }
 
 }

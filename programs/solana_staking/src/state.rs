@@ -8,13 +8,15 @@ pub struct Staking {
     pub total_fctr_bought_by_users: u64,
     pub total_fctr_sold_by_users: u64,
     pub total_bcdev_sold_by_users: u64,
+    pub finished: bool,
+    pub finish_time: u64,
     pub fctr_mint: Pubkey,
     pub bcdev_mint: Pubkey,
     pub bump: u8
 }
 
 impl Staking {
-    pub const LEN: usize = 32 + 8 * 6 + 32 * 2 + (4 + 8 * 100) + 1;
+    pub const LEN: usize = 32 + 8*7 + 32*2 + 1;
 }
 
 
@@ -28,7 +30,6 @@ pub struct StakerInfo {
     pub pending_bcdev_reward: u64,
     pub last_update_timestamp: u64,
     pub user_rpr: u64,
-
     pub bought_fctr: u64,
     pub entrusted_tokens: bool,
     pub is_in_trust_program: bool,
