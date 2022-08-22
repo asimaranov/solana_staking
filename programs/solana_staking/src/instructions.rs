@@ -15,7 +15,7 @@ pub struct Initialize<'info> {
 
 #[derive(Accounts)]
 pub struct Fund<'info> {
-    #[account(init, payer=owner, space = 8 + Staking::LEN, seeds=[b"staking"], bump)]
+    #[account(mut, seeds=[b"staking"], bump)]
     pub staking: Account<'info, Staking>,
     #[account(mut)]
     pub owner: Signer<'info>,
@@ -24,7 +24,7 @@ pub struct Fund<'info> {
 
 #[derive(Accounts)]
 pub struct Withdraw<'info> {
-    #[account(init, payer=owner, space = 8 + Staking::LEN, seeds=[b"staking"], bump)]
+    #[account(mut, seeds=[b"staking"], bump)]
     pub staking: Account<'info, Staking>,
 
     #[account(mut)]
@@ -32,11 +32,14 @@ pub struct Withdraw<'info> {
     pub system_program: Program<'info, System>,
 }
 
-
 #[derive(Accounts)]
 pub struct Register<'info> {
+    #[account(mut, seeds=[b"staking"], bump)]
+    pub staking: Account<'info, Staking>,
     #[account(mut)]
     pub staker: Signer<'info>,
+    #[account()]
+    pub proof_signer: Signer<'info>,
     #[account(init, payer=staker, space = 8 + StakerInfo::LEN, seeds = [b"staker-info", staker.key().as_ref()], bump)]
     pub staker_info: Account<'info, StakerInfo>,
     pub system_program: Program<'info, System>

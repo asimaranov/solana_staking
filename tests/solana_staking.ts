@@ -13,6 +13,7 @@ describe("solana_staking", () => {
   const program = anchor.workspace.SolanaStaking as Program<SolanaStaking>;
   const owner = (program.provider as anchor.AnchorProvider).wallet;
   const payer = anchor.web3.Keypair.generate();
+  const proofSigner = anchor.web3.Keypair.generate();
 
 
   const testRoundTime = new anchor.BN(60*60*24);
@@ -38,7 +39,7 @@ describe("solana_staking", () => {
     stakingFctrAccount = await getOrCreateAssociatedTokenAccount(program.provider.connection, payer, fctrMint, stakingPda, true);
     stakingBcdevAccount = await getOrCreateAssociatedTokenAccount(program.provider.connection, payer, bcdevMint, stakingPda, true);
 
-    const tx = await program.methods.initialize(testRoundTime, fctrMint, bcdevMint).accounts({
+    const tx = await program.methods.initialize(testRoundTime, fctrMint, bcdevMint, proofSigner.publicKey).accounts({
       staking: stakingPda,
       owner: owner.publicKey,
     }).rpc();
@@ -50,8 +51,10 @@ describe("solana_staking", () => {
 
     await program.methods.register().accounts({
       staker: owner.publicKey,
-      stakerInfo: stakerInfo
-    }).rpc()
+      stakerInfo: stakerInfo,
+      staking: stakingPda,
+      proofSigner: proofSigner.publicKey
+    }).signers([proofSigner]).rpc()
   })
 
   it("Test fctr buying", async () => {

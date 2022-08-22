@@ -12,11 +12,12 @@ pub struct Staking {
     pub finish_time: u64,
     pub fctr_mint: Pubkey,
     pub bcdev_mint: Pubkey,
+    pub proof_signer: Pubkey,
     pub bump: u8
 }
 
 impl Staking {
-    pub const LEN: usize = 32 + 8*7 + 32*2 + 1;
+    pub const LEN: usize = 8*7 + 32*4 + 1;
 }
 
 #[account]

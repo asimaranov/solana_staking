@@ -21,13 +21,14 @@ pub mod solana_staking {
     const ONE_FCTR: u64 = 10_u64.pow(12);
     const ONE_BCDEV: u64 = 10_u64.pow(18);
 
-    pub fn initialize(ctx: Context<Initialize>, round_time: u64, fctr_mint: Pubkey, bcdev_mint: Pubkey) -> Result<()> {
+    pub fn initialize(ctx: Context<Initialize>, round_time: u64, fctr_mint: Pubkey, bcdev_mint: Pubkey, proof_signer: Pubkey) -> Result<()> {
         let staking = &mut ctx.accounts.staking;
         staking.round_time = round_time;
         staking.owner = ctx.accounts.owner.key();
         staking.bump = *ctx.bumps.get("staking").unwrap();
         staking.fctr_mint = fctr_mint;
         staking.bcdev_mint = bcdev_mint;
+        staking.proof_signer = proof_signer;
         Ok(())
     }
 
@@ -53,7 +54,11 @@ pub mod solana_staking {
     }
 
     pub fn register(ctx: Context<Register>) -> Result<()> {
+        let staking = &mut ctx.accounts.staking;
         let staker_info = &mut ctx.accounts.staker_info;
+        require!(!staking.finished, StakingError::StakingFinished);
+        require!(ctx.accounts.proof_signer.key() == staking.proof_signer, StakingError::StakingFinished);
+
         staker_info.staker = ctx.accounts.staker.key();
         staker_info.bump = *ctx.bumps.get("staker_info").unwrap();
         Ok(())
@@ -272,7 +277,7 @@ pub mod solana_staking {
         let seeds = &[b"staking".as_ref(), staking_bump.as_ref()];
         let outer = [&seeds[..]];
 
-        if (confidant_info.is_staked) {
+        if confidant_info.is_staked {
             let cpi_ctx = CpiContext::new_with_signer(
                 ctx.accounts.token_program.to_account_info(), 
                 Transfer {
