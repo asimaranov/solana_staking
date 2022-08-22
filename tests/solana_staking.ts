@@ -83,6 +83,14 @@ describe("solana_staking", () => {
     expect(userFctrAccount.amount - fctrBalanceBeforeStake == BigInt(testAmount.toString(10))).to.be.true;
   });
 
+  it("Test staking funding", async () => {
+    const testAmount = new BN(2).mul(new BN(anchor.web3.LAMPORTS_PER_SOL));
+    await program.methods.fund(testAmount).accounts({
+      staking: stakingPda,
+      owner: owner.publicKey
+    }).rpc()
+  })
+
   it("Test fctr selling", async () => {
     const testAmount = new BN(10).mul(ONE_FCTR);
 

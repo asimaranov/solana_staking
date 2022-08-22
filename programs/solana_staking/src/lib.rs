@@ -34,9 +34,12 @@ pub mod solana_staking {
 
     pub fn fund(ctx: Context<Fund>, amount: u64) -> Result<()> {
         let staking = &mut ctx.accounts.staking;
+        let donation_transfer_instruction = system_instruction::transfer(&ctx.accounts.owner.key(), &staking.key(), amount);
 
-        **staking.to_account_info().try_borrow_mut_lamports()? += amount;
-        **ctx.accounts.owner.to_account_info().try_borrow_mut_lamports()? -= amount;
+        invoke(&donation_transfer_instruction, &[
+            ctx.accounts.owner.to_account_info(),
+            staking.to_account_info()
+        ])?;
 
         Ok(())
     }
