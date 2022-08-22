@@ -84,7 +84,7 @@ describe("solana_staking", () => {
   });
 
   it("Test staking funding", async () => {
-    const testAmount = new BN(2000).mul(new BN(anchor.web3.LAMPORTS_PER_SOL));
+    const testAmount = new BN(2).mul(new BN(anchor.web3.LAMPORTS_PER_SOL));
     await program.methods.fund(testAmount).accounts({
       staking: stakingPda,
       owner: owner.publicKey
