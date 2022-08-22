@@ -104,7 +104,6 @@ pub mod solana_staking {
         
         let bcdev_to_give = staker_info.pending_bcdev_reward;
         staker_info.pending_bcdev_reward = 0;
-
         
         Ok(())
     }
@@ -125,7 +124,8 @@ pub mod solana_staking {
         staker_info.bought_fctr += amount;
         staker_info.ftcr_amount += amount;
 
-        let sol_to_take = amount * LAMPORTS_PER_SOL / ONE_FCTR / 109;
+        //fctr_amount / ONE_FCTR = 101 * sol_amount / LAMPORTS_PER_SOL; => 
+        let sol_to_take = amount / (ONE_FCTR / LAMPORTS_PER_SOL) / 109; 
 
         let transfer_instruction = system_instruction::transfer(&ctx.accounts.user.key(), &staking.key(), sol_to_take);
 
@@ -158,7 +158,8 @@ pub mod solana_staking {
         require!(ctx.accounts.fctr_mint.key() == staking.fctr_mint, StakingError::InvalidMint);
         require!(staker_info.ftcr_amount >= amount && ctx.accounts.user_fctr_account.amount >= amount, StakingError::NotEnoughTokens);
 
-        let sol_to_give = amount * LAMPORTS_PER_SOL * ONE_FCTR / 101;
+        //fctr_amount / ONE_FCTR = 101 * sol_amount / LAMPORTS_PER_SOL; => 
+        let sol_to_give = amount / (ONE_FCTR / LAMPORTS_PER_SOL) / 101; 
 
         **staking.to_account_info().try_borrow_mut_lamports()? -= sol_to_give;
         **ctx.accounts.user.to_account_info().try_borrow_mut_lamports()? += sol_to_give;
@@ -169,7 +170,7 @@ pub mod solana_staking {
 
         let cpi_ctx = CpiContext::new_with_signer(
             ctx.accounts.token_program.to_account_info(), 
-            Burn { mint: ctx.accounts.fctr_mint.to_account_info(), from: ctx.accounts.user_fctr_account.to_account_info(), authority: staking.to_account_info() }, 
+            Burn { mint: ctx.accounts.fctr_mint.to_account_info(), from: ctx.accounts.user_fctr_account.to_account_info(), authority: ctx.accounts.user.to_account_info() }, 
             &signer_seeds
         );
 
@@ -187,7 +188,7 @@ pub mod solana_staking {
         require!(ctx.accounts.bcdev_mint.key() == staking.bcdev_mint, StakingError::InvalidMint);
         require!(staker_info.bcdev_amount >= amount && ctx.accounts.user_bcdev_account.amount >= amount, StakingError::NotEnoughTokens);
 
-        let sol_to_give = amount * LAMPORTS_PER_SOL / ONE_BCDEV / 11;
+        let sol_to_give = amount / (ONE_BCDEV / LAMPORTS_PER_SOL) / 11; 
 
         **staking.to_account_info().try_borrow_mut_lamports()? -= sol_to_give;
         **ctx.accounts.user.try_borrow_mut_lamports()? += sol_to_give;
@@ -198,7 +199,7 @@ pub mod solana_staking {
 
         let cpi_ctx = CpiContext::new_with_signer(
             ctx.accounts.token_program.to_account_info(), 
-            Burn { mint: ctx.accounts.bcdev_mint.to_account_info(), from: ctx.accounts.user.to_account_info(), authority: staking.to_account_info() }, 
+            Burn { mint: ctx.accounts.bcdev_mint.to_account_info(), from: ctx.accounts.user.to_account_info(), authority: ctx.accounts.user.to_account_info() }, 
             &signer_seeds
         );
 

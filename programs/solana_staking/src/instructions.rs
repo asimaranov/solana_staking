@@ -9,9 +9,6 @@ pub struct Initialize<'info> {
     pub staking: Account<'info, Staking>,
 
     #[account(mut)]
-    pub staking_fctr_account: Account<'info, TokenAccount>,
-
-    #[account(mut)]
     pub owner: Signer<'info>,
     pub system_program: Program<'info, System>
 }
