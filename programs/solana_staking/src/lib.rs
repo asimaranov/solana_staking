@@ -11,6 +11,8 @@ declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 
 #[program]
 pub mod solana_staking {    
+    use std::cmp::min;
+
     use anchor_lang::solana_program::{native_token::LAMPORTS_PER_SOL, system_instruction, program::invoke};
     use anchor_spl::token::{Transfer, self, MintTo, Burn};
 
@@ -85,7 +87,7 @@ pub mod solana_staking {
             }, 
             &outer);
         
-        let amount = ctx.accounts.staker_fctr_account.amount;
+        let amount = min(ctx.accounts.staker_fctr_account.amount, staker_info.ftcr_amount);
 
         token::transfer(cpi_ctx, amount)?;     
 
@@ -125,6 +127,7 @@ pub mod solana_staking {
         );
 
         token::mint_to(cpi_ctx, staker_info.pending_bcdev_reward)?;
+        staker_info.bcdev_amount += staker_info.pending_bcdev_reward;
         
         let cpi_ctx = CpiContext::new_with_signer(
             ctx.accounts.token_program.to_account_info(), 
@@ -133,6 +136,7 @@ pub mod solana_staking {
         );
 
         token::transfer(cpi_ctx, staker_info.stake_size)?;
+        staker_info.ftcr_amount += staker_info.stake_size;
 
         staker_info.pending_bcdev_reward = 0;
         staker_info.stake_size = 0;
@@ -211,6 +215,7 @@ pub mod solana_staking {
         token::burn(cpi_ctx, amount)?;
 
         staking.total_fctr_sold_by_users += amount;
+        staker_info.ftcr_amount -= amount;
 
         Ok(())
     }
@@ -241,6 +246,8 @@ pub mod solana_staking {
         token::burn(cpi_ctx, amount)?;
 
         staking.total_bcdev_sold_by_users += amount;
+        staker_info.bcdev_amount -= amount;
+
 
         Ok(())
     }
@@ -250,6 +257,7 @@ pub mod solana_staking {
         let confidant_fctr_account = &mut ctx.accounts.confidant_fctr_account;
         let principal_info = &mut ctx.accounts.principal_info;
         let confidant_info = &mut ctx.accounts.confidant_info;
+        let staking = &mut ctx.accounts.staking;
 
         let amount = principal_fctr_account.amount / 2;
 
@@ -257,8 +265,6 @@ pub mod solana_staking {
         require!(confidant_fctr_account.owner == confidant, StakingError::InvalidTokenAccount);
         require!(principal_fctr_account.amount >= amount && principal_info.ftcr_amount >= amount, StakingError::InvalidTokenAccount);
         require!(principal_fctr_account.amount >= principal_info.bought_fctr / 4 && principal_info.ftcr_amount >= principal_info.bought_fctr / 4, StakingError::InvalidAmountEntrusted);
-
-        let staking = &mut ctx.accounts.staking;
 
         principal_info.is_in_trust_program = true;
         confidant_info.is_in_trust_program = true;
