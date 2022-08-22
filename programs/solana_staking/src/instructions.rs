@@ -169,6 +169,9 @@ pub struct Entrust<'info> {
     #[account(mut, token::mint=fctr_mint)]
     pub confidant_fctr_account: Account<'info, TokenAccount>,
 
+    #[account(mut, token::authority=staking, token::mint=fctr_mint)]
+    pub staking_fctr_account: Account<'info, TokenAccount>,
+
     pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>
 }

@@ -19,6 +19,9 @@ pub enum StakingError {
     #[msg("Invalid amont entrusted")]
     InvalidAmountEntrusted,
     #[msg("Staking finished")]
-    StakingFinished
+    StakingFinished,
+    #[msg("Too much principals")]
+    TooMuchPrincipals
+
 
 }

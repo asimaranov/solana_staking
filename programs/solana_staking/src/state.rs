@@ -19,7 +19,6 @@ impl Staking {
     pub const LEN: usize = 32 + 8*7 + 32*2 + 1;
 }
 
-
 #[account]
 pub struct StakerInfo {
     pub staker: Pubkey,
@@ -31,12 +30,14 @@ pub struct StakerInfo {
     pub last_update_timestamp: u64,
     pub user_rpr: u64,
     pub bought_fctr: u64,
+    pub principals_num: u8,
     pub entrusted_tokens: bool,
+    pub is_staked: bool,
     pub is_in_trust_program: bool,
     pub bump: u8
 }
 
 impl StakerInfo {
-    pub const LEN: usize = 32 + 8*8 + 1 + 1 + 1;
+    pub const LEN: usize = 32 + 8*8 + 1*5;
 }
 
