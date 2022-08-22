@@ -21,7 +21,10 @@ pub enum StakingError {
     #[msg("Staking finished")]
     StakingFinished,
     #[msg("Too much principals")]
-    TooMuchPrincipals
+    TooMuchPrincipals,
+    #[msg("Can't withdraw")]
+    CantWithdraw
+
 
 
 }

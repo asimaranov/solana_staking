@@ -17,17 +17,19 @@ pub struct Initialize<'info> {
 pub struct Fund<'info> {
     #[account(init, payer=owner, space = 8 + Staking::LEN, seeds=[b"staking"], bump)]
     pub staking: Account<'info, Staking>,
+    #[account(mut)]
+    pub owner: Signer<'info>,
+    pub system_program: Program<'info, System>,
+}
 
-    #[account(mut, token::authority=staking)]
-    pub staking_fctr_account: Account<'info, TokenAccount>,
-
-    #[account(mut, token::authority=owner)]
-    pub owner_fctr_account: Account<'info, TokenAccount>,
+#[derive(Accounts)]
+pub struct Withdraw<'info> {
+    #[account(init, payer=owner, space = 8 + Staking::LEN, seeds=[b"staking"], bump)]
+    pub staking: Account<'info, Staking>,
 
     #[account(mut)]
     pub owner: Signer<'info>,
     pub system_program: Program<'info, System>,
-    pub token_program: Program<'info, Token>
 }
 
 

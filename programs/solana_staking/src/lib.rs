@@ -34,27 +34,20 @@ pub mod solana_staking {
     pub fn fund(ctx: Context<Fund>, amount: u64) -> Result<()> {
         let staking = &mut ctx.accounts.staking;
 
-        require!(ctx.accounts.staking_fctr_account.mint == staking.fctr_mint, StakingError::InvalidTokenAccount);
+        **staking.to_account_info().try_borrow_mut_lamports()? += amount;
+        **ctx.accounts.owner.to_account_info().try_borrow_mut_lamports()? -= amount;
 
-        let staking_fctr_account = &mut ctx.accounts.staking_fctr_account;
-        let owner_fctr_account = &mut ctx.accounts.owner_fctr_account;
+        Ok(())
+    }
 
-        require!(ctx.accounts.owner.key() == staking.owner, StakingError::NotTheOwner);
+    pub fn withdraw(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
+        let staking = &mut ctx.accounts.staking;
+        let current_time = Clock::get().unwrap().unix_timestamp as u64;
 
-        let staking_bump = staking.bump.to_le_bytes();
-        let seeds = &[b"staking".as_ref(), staking_bump.as_ref()];
-        let outer = [&seeds[..]];
+        require!(staking.finished && staking.finish_time > current_time + staking.round_time * 2, StakingError::CantWithdraw);
 
-        let cpi_ctx = CpiContext::new_with_signer(
-            ctx.accounts.token_program.to_account_info(), 
-            Transfer {
-                from: owner_fctr_account.to_account_info(),
-                to: staking_fctr_account.to_account_info(), 
-                authority: ctx.accounts.owner.to_account_info()
-            }, 
-            &outer);
-        
-        token::transfer(cpi_ctx, amount)?;
+        **staking.to_account_info().try_borrow_mut_lamports()? -= amount;
+        **ctx.accounts.owner.to_account_info().try_borrow_mut_lamports()? += amount;
 
         Ok(())
     }
