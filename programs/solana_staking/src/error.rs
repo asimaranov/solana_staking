@@ -23,7 +23,9 @@ pub enum StakingError {
     #[msg("Too much principals")]
     TooMuchPrincipals,
     #[msg("Can't withdraw")]
-    CantWithdraw
+    CantWithdraw,
+    #[msg("Deposit diff to high")]
+    InvalidDepositDiff,
 
 
 

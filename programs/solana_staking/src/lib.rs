@@ -262,6 +262,8 @@ pub mod solana_staking {
         require!(confidant_fctr_account.owner == confidant, StakingError::InvalidTokenAccount);
         require!(principal_fctr_account.amount >= amount && principal_info.ftcr_amount >= amount, StakingError::InvalidTokenAccount);
         require!(principal_fctr_account.amount >= principal_info.bought_fctr / 4 && principal_info.ftcr_amount >= principal_info.bought_fctr / 4, StakingError::InvalidAmountEntrusted);
+        require!(confidant_info.ftcr_amount / 2 >= principal_info.ftcr_amount && principal_info.ftcr_amount >= confidant_info.ftcr_amount * 2, StakingError::InvalidDepositDiff);
+        require!(principal_info.ftcr_amount / 2 >= confidant_info.ftcr_amount && confidant_info.ftcr_amount >= principal_info.ftcr_amount * 2, StakingError::InvalidDepositDiff);
 
         principal_info.is_in_trust_program = true;
         confidant_info.is_in_trust_program = true;
