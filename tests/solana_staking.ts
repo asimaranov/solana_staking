@@ -132,6 +132,32 @@ describe("solana_staking", () => {
     const lampBalanceAfterStake = await program.provider.connection.getBalance(owner.publicKey);
     expect(lampBalanceBeforeStake).lte(lampBalanceAfterStake - lampToTake.toNumber());
     expect(bcdevBalanceBeforeStake - userBcdevAccount.amount == BigInt(testAmount.toString(10))).to.be.true;
+  });
+
+  it("Test staking", async () => {
+    const testAmount = new BN(10).mul(ONE_FCTR);
+    const [stakerInfo, ] = await anchor.web3.PublicKey.findProgramAddress([utf8.encode("staker-info"), owner.publicKey.toBuffer()], program.programId);
+    let userFctrAccount = await getOrCreateAssociatedTokenAccount(program.provider.connection, payer, fctrMint, owner.publicKey);
+
+    await program.methods.buyFctr(testAmount).accounts({
+      staking: stakingPda,
+      fctrMint: fctrMint,
+      user: owner.publicKey,
+      stakerInfo: stakerInfo,
+      userFctrAccount: userFctrAccount.address
+    }).rpc();
+
+    expect(userFctrAccount.amount > 0).to.be.true;
+
+    await program.methods.stake().accounts({
+      staking: stakingPda, 
+      stakerInfo: stakerInfo, 
+      stakerFctrAccount: userFctrAccount.address,
+      stakingFctrAccount: stakingFctrAccount.address
+    }).rpc();
+
+    userFctrAccount = await getAccount(program.provider.connection, userFctrAccount.address);
+    expect(userFctrAccount.amount == BigInt(0)).to.be.true;
   })
 
 });

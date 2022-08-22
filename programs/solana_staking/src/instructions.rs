@@ -60,14 +60,18 @@ pub struct Unstake<'info> {
     pub staking: Account<'info, Staking>,
     #[account(mut, seeds=[b"staker-info", staker.key().as_ref()], bump)]
     pub staker_info: Account<'info, StakerInfo>,
-    #[account(mut, token::authority=staker)]
+    #[account(mut, token::authority=staker, token::mint=fctr_mint)]
     pub staker_fctr_account: Account<'info, TokenAccount>,
-    #[account(mut, token::authority=staking)]
+    #[account(mut, token::authority=staking, token::mint=fctr_mint)]
     pub staking_fctr_account: Account<'info, TokenAccount>,
-    #[account(mut, token::authority=staker)]
+    #[account(mut, token::authority=staking, token::mint=bcdev_mint)]
+    pub staking_bcdev_account: Account<'info, TokenAccount>,
+    #[account(mut, token::authority=staker, token::mint=bcdev_mint)]
     pub staker_bcdev_account: Account<'info, TokenAccount>,
     #[account(mut)]
     pub bcdev_mint: Account<'info, Mint>,
+    #[account(mut)]
+    pub fctr_mint: Account<'info, Mint>,
     pub staker: Signer<'info>,
     pub token_program: Program<'info, Token>
 }

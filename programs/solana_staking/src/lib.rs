@@ -86,7 +86,15 @@ pub mod solana_staking {
         
         let amount = ctx.accounts.staker_fctr_account.amount;
 
-        token::transfer(cpi_ctx, amount)?;        
+        token::transfer(cpi_ctx, amount)?;     
+
+        let current_time = Clock::get().unwrap().unix_timestamp as u64;
+        if staker_info.last_update_timestamp > 0 {  // Already staked
+            let period = current_time - staker_info.last_update_timestamp;
+            staker_info.pending_bcdev_reward += period * staker_info.ftcr_amount * staker_info.user_rpr;
+            
+        }
+        staker_info.last_update_timestamp = current_time;
         staker_info.stake_size += amount;
 
         Ok(())
@@ -96,15 +104,37 @@ pub mod solana_staking {
         let staker_info = &mut ctx.accounts.staker_info;
         let staking = &mut ctx.accounts.staking;
 
+        require!(ctx.accounts.bcdev_mint.key() == staking.bcdev_mint, StakingError::InvalidMint);
+        require!(ctx.accounts.fctr_mint.key() == staking.fctr_mint, StakingError::InvalidMint);
+
         let current_time = Clock::get().unwrap().unix_timestamp as u64;
 
         let period = current_time - staker_info.last_update_timestamp;
         staker_info.pending_bcdev_reward += period * staker_info.ftcr_amount * staker_info.user_rpr;
 
+        let staking_bump = staking.bump.to_le_bytes();
+        let seeds = &[b"staking".as_ref(), staking_bump.as_ref()];
+        let signer_seeds = [&seeds[..]];
+
+        let cpi_ctx = CpiContext::new_with_signer(
+            ctx.accounts.token_program.to_account_info(), 
+            MintTo { mint: ctx.accounts.bcdev_mint.to_account_info(), to: ctx.accounts.staker_bcdev_account.to_account_info(), authority: staking.to_account_info() }, 
+            &signer_seeds
+        );
+
+        token::mint_to(cpi_ctx, staker_info.pending_bcdev_reward)?;
         
-        let bcdev_to_give = staker_info.pending_bcdev_reward;
+        let cpi_ctx = CpiContext::new_with_signer(
+            ctx.accounts.token_program.to_account_info(), 
+            Transfer { from: ctx.accounts.staking_fctr_account.to_account_info(), to: ctx.accounts.staker_bcdev_account.to_account_info(), authority: staking.to_account_info() }, 
+            &signer_seeds
+        );
+
+        token::transfer(cpi_ctx, staker_info.stake_size)?;
+
         staker_info.pending_bcdev_reward = 0;
-        
+        staker_info.stake_size = 0;
+
         Ok(())
     }
 
