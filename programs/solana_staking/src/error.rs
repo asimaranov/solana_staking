@@ -26,6 +26,8 @@ pub enum StakingError {
     CantWithdraw,
     #[msg("Deposit diff to high")]
     InvalidDepositDiff,
+    #[msg("Not enough funds in staking")]
+    NotEnoughFunds,
 
 
 

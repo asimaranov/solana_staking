@@ -201,6 +201,10 @@ pub mod solana_staking {
         //fctr_amount / ONE_FCTR = 101 * sol_amount / LAMPORTS_PER_SOL; => 
         let sol_to_give = amount / (ONE_FCTR / LAMPORTS_PER_SOL) / 101; 
 
+        require!(**staking.to_account_info().lamports.borrow() >= sol_to_give, StakingError::NotEnoughFunds);
+
+        msg!("{:?} {:?} {}", staking.to_account_info().lamports, ctx.accounts.user.to_account_info().lamports, sol_to_give);
+
         **staking.to_account_info().try_borrow_mut_lamports()? -= sol_to_give;
         **ctx.accounts.user.to_account_info().try_borrow_mut_lamports()? += sol_to_give;
 
