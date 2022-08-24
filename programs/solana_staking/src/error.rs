@@ -28,6 +28,8 @@ pub enum StakingError {
     InvalidDepositDiff,
     #[msg("Not enough funds in staking")]
     NotEnoughFunds,
+    #[msg("User can't unstake in round he staked")]
+    CantUnstakeInThisVeryRound,
 
 
 

@@ -48,7 +48,7 @@ pub mod solana_staking {
         let staking = &mut ctx.accounts.staking;
         let current_time = Clock::get().unwrap().unix_timestamp as u64;
 
-        require!(staking.finished && staking.finish_time > current_time + staking.round_time * 2, StakingError::CantWithdraw);
+        require!(staking.finished && current_time - staking.finish_time >= staking.round_time * 2, StakingError::CantWithdraw);
 
         **staking.to_account_info().try_borrow_mut_lamports()? -= amount;
         **ctx.accounts.owner.to_account_info().try_borrow_mut_lamports()? += amount;
@@ -108,10 +108,12 @@ pub mod solana_staking {
     pub fn unstake(ctx: Context<Unstake>) -> Result<()>{
         let staker_info = &mut ctx.accounts.staker_info;
         let staking = &mut ctx.accounts.staking;
+        let current_time = Clock::get().unwrap().unix_timestamp as u64;
 
         require!(!staking.finished, StakingError::StakingFinished);
         require!(ctx.accounts.bcdev_mint.key() == staking.bcdev_mint, StakingError::InvalidMint);
         require!(ctx.accounts.fctr_mint.key() == staking.fctr_mint, StakingError::InvalidMint);
+        require!(current_time - staker_info.stake_time >= staking.round_time, StakingError::CantUnstakeInThisVeryRound);
 
         let current_time = Clock::get().unwrap().unix_timestamp as u64;
 
