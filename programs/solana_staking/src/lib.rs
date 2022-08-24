@@ -263,18 +263,15 @@ pub mod solana_staking {
 
     pub fn entrust(ctx: Context<Entrust>, confidant: Pubkey) -> Result<()> {
         let principal_fctr_account = &mut ctx.accounts.principal_fctr_account;
-        let confidant_fctr_account = &mut ctx.accounts.confidant_fctr_account;
-        let staking_fctr_account = &mut ctx.accounts.staking_fctr_account;
 
         let principal_info = &mut ctx.accounts.principal_info;
         let confidant_info = &mut ctx.accounts.confidant_info;
-        let staking = &mut ctx.accounts.staking;
+        let staking = &ctx.accounts.staking;
 
         let amount = principal_fctr_account.amount / 2;
 
         require!(!staking.finished, StakingError::StakingFinished);
         require!(!confidant_info.principals.len() <= 4, StakingError::TooMuchPrincipals);
-        require!(confidant_fctr_account.owner == confidant, StakingError::InvalidTokenAccount);
         require!(principal_fctr_account.amount >= amount && principal_info.ftcr_amount >= amount, StakingError::InvalidTokenAccount);
         require!(principal_fctr_account.amount >= principal_info.bought_fctr / 4 && principal_info.ftcr_amount >= principal_info.bought_fctr / 4, StakingError::InvalidAmountEntrusted);
         require!(confidant_info.ftcr_amount / 2 >= principal_info.ftcr_amount && principal_info.ftcr_amount >= confidant_info.ftcr_amount * 2, StakingError::InvalidDepositDiff);
@@ -282,10 +279,6 @@ pub mod solana_staking {
 
         principal_info.is_in_trust_program = true;
         confidant_info.is_in_trust_program = true;
-
-        let staking_bump = staking.bump.to_le_bytes();
-        let seeds = &[b"staking".as_ref(), staking_bump.as_ref()];
-        let outer = [&seeds[..]];
 
         let staking_bump = staking.bump.to_le_bytes();
         let seeds = &[b"staking".as_ref(), staking_bump.as_ref()];

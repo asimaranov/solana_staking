@@ -153,7 +153,7 @@ pub struct SellBcdev<'info> {
 #[derive(Accounts)]
 #[instruction(confidant_address: Pubkey)]
 pub struct Entrust<'info> {
-    #[account(mut, seeds=[b"staking"], bump)]
+    #[account(seeds=[b"staking"], bump)]
     pub staking: Account<'info, Staking>,
 
     #[account(mut)]
@@ -170,12 +170,6 @@ pub struct Entrust<'info> {
 
     #[account(mut, token::authority=principal, token::mint=fctr_mint)]
     pub principal_fctr_account: Account<'info, TokenAccount>,
-
-    #[account(mut, token::mint=fctr_mint)]
-    pub confidant_fctr_account: Account<'info, TokenAccount>,
-
-    #[account(mut, token::authority=staking, token::mint=fctr_mint)]
-    pub staking_fctr_account: Account<'info, TokenAccount>,
 
     pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>
@@ -201,12 +195,6 @@ pub struct DemandBack<'info> {
 
     #[account(mut, token::authority=principal, token::mint=fctr_mint)]
     pub principal_fctr_account: Account<'info, TokenAccount>,
-
-    #[account(mut, token::mint=fctr_mint)]
-    pub confidant_fctr_account: Account<'info, TokenAccount>,
-
-    #[account(mut, token::authority=staking, token::mint=fctr_mint)]
-    pub staking_fctr_account: Account<'info, TokenAccount>,
 
     pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>
