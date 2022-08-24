@@ -14,7 +14,9 @@ pub mod solana_staking {
     use std::cmp::min;
 
     use anchor_lang::solana_program::{native_token::LAMPORTS_PER_SOL, system_instruction, program::invoke};
-    use anchor_spl::token::{Transfer, self, MintTo, Burn};
+    use anchor_spl::token::{Transfer, self, MintTo, Burn, TokenAccount};
+
+    use crate::state::StakerInfo;
 
     use super::*;
 
@@ -73,32 +75,27 @@ pub mod solana_staking {
         staker_info.is_staked = true;
 
         require!(!staking.finished, StakingError::StakingFinished);
-        require!(ctx.accounts.staking_fctr_account.mint == staking.fctr_mint, StakingError::InvalidTokenAccount);
+        require!(ctx.accounts.fctr_mint.key() == staking.fctr_mint, StakingError::InvalidTokenAccount);
         require!(ctx.accounts.staker_fctr_account.mint == staking.fctr_mint, StakingError::InvalidTokenAccount);
 
         let staking_bump = staking.bump.to_le_bytes();
         let seeds = &[b"staking".as_ref(), staking_bump.as_ref()];
-        let outer = [&seeds[..]];
+        let signer_seeds = [&seeds[..]];
+        let amount = min(ctx.accounts.staker_fctr_account.amount, staker_info.ftcr_amount);
 
         let cpi_ctx = CpiContext::new_with_signer(
             ctx.accounts.token_program.to_account_info(), 
-            Transfer {
-                from: ctx.accounts.staker_fctr_account.to_account_info(),
-                to: ctx.accounts.staking_fctr_account.to_account_info(), 
-                authority: ctx.accounts.staker.to_account_info()
-            }, 
-            &outer);
+            Burn { mint: ctx.accounts.fctr_mint.to_account_info(), from: ctx.accounts.staker_fctr_account.to_account_info(), authority: ctx.accounts.staker.to_account_info() }, 
+            &signer_seeds
+        );
+        token::burn(cpi_ctx, amount)?;
         
-        let amount = min(ctx.accounts.staker_fctr_account.amount, staker_info.ftcr_amount);
-
-        token::transfer(cpi_ctx, amount)?;     
-
         let current_time = Clock::get().unwrap().unix_timestamp as u64;
         if staker_info.last_update_timestamp > 0 {  // Already staked
             let period = current_time - staker_info.last_update_timestamp;
             staker_info.pending_bcdev_reward += period * staker_info.ftcr_amount * staker_info.user_rpr;
-            
         }
+
         staker_info.last_update_timestamp = current_time;
         staker_info.stake_size += amount;
         staker_info.ftcr_amount = 0;
@@ -125,24 +122,55 @@ pub mod solana_staking {
         let seeds = &[b"staking".as_ref(), staking_bump.as_ref()];
         let signer_seeds = [&seeds[..]];
 
+        let mut amount_to_give_to_user = staker_info.stake_size;
+
+        for (i, principal_accounts) in ctx.remaining_accounts.chunks_exact(3).enumerate() {
+            let pricipal_fctr_account = &mut Account::<TokenAccount>::try_from(&principal_accounts[0])?;
+            let pricipal_bcdev_account = &mut Account::<TokenAccount>::try_from(&principal_accounts[1])?;
+            let pricipal_info = &mut Account::<StakerInfo>::try_from(&principal_accounts[2])?;
+
+            require!(pricipal_fctr_account.mint.key() == staking.fctr_mint, StakingError::InvalidMint);
+            require!(pricipal_bcdev_account.mint.key() == staking.bcdev_mint, StakingError::InvalidMint);
+            require!(pricipal_fctr_account.owner == staker_info.principals[i].principal, StakingError::InvalidTokenAccountOwner);
+            require!(pricipal_bcdev_account.owner == staker_info.principals[i].principal, StakingError::InvalidTokenAccountOwner);
+            require!(pricipal_info.staker == staker_info.principals[i].principal, StakingError::InvalidTokenAccountOwner);
+
+            let cpi_ctx = CpiContext::new_with_signer(
+                ctx.accounts.token_program.to_account_info(), 
+                MintTo { mint: ctx.accounts.fctr_mint.to_account_info(), to: ctx.accounts.staker_fctr_account.to_account_info(), authority: staking.to_account_info() }, 
+                &signer_seeds
+            );
+            token::mint_to(cpi_ctx, staker_info.principals[i].amount)?;
+            pricipal_info.ftcr_amount += staker_info.principals[i].amount;
+            pricipal_info.ftcr_amount += staker_info.principals[i].amount;
+            amount_to_give_to_user -= staker_info.principals[i].amount;
+
+            let cpi_ctx = CpiContext::new_with_signer(
+                ctx.accounts.token_program.to_account_info(), 
+                MintTo { mint: ctx.accounts.fctr_mint.to_account_info(), to: ctx.accounts.staker_fctr_account.to_account_info(), authority: staking.to_account_info() }, 
+                &signer_seeds
+            );
+            token::mint_to(cpi_ctx, staker_info.pending_bcdev_reward * staker_info.principals[i].amount / staker_info.stake_size)?;
+        }
+
         let cpi_ctx = CpiContext::new_with_signer(
             ctx.accounts.token_program.to_account_info(), 
             MintTo { mint: ctx.accounts.bcdev_mint.to_account_info(), to: ctx.accounts.staker_bcdev_account.to_account_info(), authority: staking.to_account_info() }, 
             &signer_seeds
         );
 
-        token::mint_to(cpi_ctx, staker_info.pending_bcdev_reward)?;
-        staker_info.bcdev_amount += staker_info.pending_bcdev_reward;
-        
+        let reward_to_give_to_user = staker_info.pending_bcdev_reward * amount_to_give_to_user / staker_info.stake_size;
+        token::mint_to(cpi_ctx, reward_to_give_to_user)?;
+        staker_info.bcdev_amount += reward_to_give_to_user;
+
         let cpi_ctx = CpiContext::new_with_signer(
             ctx.accounts.token_program.to_account_info(), 
-            Transfer { from: ctx.accounts.staking_fctr_account.to_account_info(), to: ctx.accounts.staker_bcdev_account.to_account_info(), authority: staking.to_account_info() }, 
+            MintTo { mint: ctx.accounts.fctr_mint.to_account_info(), to: ctx.accounts.staker_fctr_account.to_account_info(), authority: staking.to_account_info() }, 
             &signer_seeds
         );
+        token::mint_to(cpi_ctx, amount_to_give_to_user)?;
 
-        token::transfer(cpi_ctx, staker_info.stake_size)?;
-        staker_info.ftcr_amount == staker_info.stake_size;
-
+        staker_info.ftcr_amount = amount_to_give_to_user;
         staker_info.pending_bcdev_reward = 0;
         staker_info.stake_size = 0;
 
@@ -297,7 +325,6 @@ pub mod solana_staking {
     
         } else {
             confidant_info.ftcr_amount += amount;
-    
         }
         confidant_info.principals.push(state::EntrustInfo { principal: principal_info.staker, amount });
         principal_info.user_rpr += 2;

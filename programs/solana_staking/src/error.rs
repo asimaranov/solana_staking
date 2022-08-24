@@ -34,6 +34,10 @@ pub enum StakingError {
     NoSuchPrincipal,
     #[msg("The principal has to trusted money to the condidant")]
     NothingToDemandBack,
+    #[msg("Invalid token account owner")]
+    InvalidTokenAccountOwner,
+    #[msg("Invalid principal info account")]
+    InvalidPrincipalInfoAccount,
 
 
 

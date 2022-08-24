@@ -26,7 +26,7 @@ pub struct EntrustInfo {
     pub amount: u64
 }
 
-#[account]
+#[account()]
 pub struct StakerInfo {
     pub staker: Pubkey,
     pub stake_size: u64,

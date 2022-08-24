@@ -53,8 +53,8 @@ pub struct Stake<'info> {
     pub staker_info: Account<'info, StakerInfo>,
     #[account(mut, token::authority=staker)]
     pub staker_fctr_account: Account<'info, TokenAccount>,
-    #[account(mut, token::authority=staking)]
-    pub staking_fctr_account: Account<'info, TokenAccount>,
+    #[account(mut)]
+    pub fctr_mint: Account<'info, Mint>,
     pub staker: Signer<'info>,
     pub token_program: Program<'info, Token>
 }
@@ -67,12 +67,9 @@ pub struct Unstake<'info> {
     pub staker_info: Account<'info, StakerInfo>,
     #[account(mut, token::authority=staker, token::mint=fctr_mint)]
     pub staker_fctr_account: Account<'info, TokenAccount>,
-    #[account(mut, token::authority=staking, token::mint=fctr_mint)]
-    pub staking_fctr_account: Account<'info, TokenAccount>,
-    #[account(mut, token::authority=staking, token::mint=bcdev_mint)]
-    pub staking_bcdev_account: Account<'info, TokenAccount>,
     #[account(mut, token::authority=staker, token::mint=bcdev_mint)]
     pub staker_bcdev_account: Account<'info, TokenAccount>,
+
     #[account(mut)]
     pub bcdev_mint: Account<'info, Mint>,
     #[account(mut)]
