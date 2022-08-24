@@ -321,8 +321,10 @@ pub mod solana_staking {
 
         let entrust_info = confididant_info.principals.iter_mut().find(|x|x.principal == principal_info.staker).ok_or(StakingError::NoSuchPrincipal)?;
         let amount_to_take = entrust_info.amount;
-        entrust_info.amount = 0;
+        
+        require!(amount_to_take > 0, StakingError::NothingToDemandBack);
 
+        entrust_info.amount = 0;
         confididant_info.ftcr_amount -= amount_to_take;
         principal_info.ftcr_amount += amount_to_take;
 
@@ -335,10 +337,14 @@ pub mod solana_staking {
             MintTo { mint: ctx.accounts.fctr_mint.to_account_info(), to: ctx.accounts.principal_fctr_account.to_account_info(), authority: ctx.accounts.fctr_mint.to_account_info() }, 
             &signer_seeds
         );
-
         token::mint_to(cpi_ctx, amount_to_take)?;
 
-        require!(amount_to_take > 0, StakingError::NothingToDemandBack);
+        if confididant_info.is_staked {
+            confididant_info.stake_size -= amount_to_take;
+        } else {
+            confididant_info.ftcr_amount += amount_to_take;
+        }
+
         return Ok(())
     }
 
