@@ -30,6 +30,10 @@ pub enum StakingError {
     NotEnoughFunds,
     #[msg("User can't unstake in round he staked")]
     CantUnstakeInThisVeryRound,
+    #[msg("Invalid principal for the confidant")]
+    NoSuchPrincipal,
+    #[msg("The principal has to trusted money to the condidant")]
+    NothingToDemandBack,
 
 
 

@@ -182,6 +182,37 @@ pub struct Entrust<'info> {
 }
 
 #[derive(Accounts)]
+#[instruction(confidant_address: Pubkey)]
+pub struct DemandBack<'info> {
+    #[account(mut, seeds=[b"staking"], bump)]
+    pub staking: Account<'info, Staking>,
+
+    #[account(mut)]
+    pub principal: Signer<'info>,
+
+    #[account(mut, seeds=[b"staker-info", principal.key().as_ref()], bump)]
+    pub principal_info: Account<'info, StakerInfo>,
+
+    #[account(mut, seeds=[b"staker-info", confidant_address.as_ref()], bump)]
+    pub confidant_info: Account<'info, StakerInfo>,
+
+    #[account(mut)]
+    pub fctr_mint: Account<'info, Mint>,
+
+    #[account(mut, token::authority=principal, token::mint=fctr_mint)]
+    pub principal_fctr_account: Account<'info, TokenAccount>,
+
+    #[account(mut, token::mint=fctr_mint)]
+    pub confidant_fctr_account: Account<'info, TokenAccount>,
+
+    #[account(mut, token::authority=staking, token::mint=fctr_mint)]
+    pub staking_fctr_account: Account<'info, TokenAccount>,
+
+    pub token_program: Program<'info, Token>,
+    pub system_program: Program<'info, System>
+}
+
+#[derive(Accounts)]
 pub struct Stop<'info>{
     #[account(mut, seeds=[b"staking"], bump)]
     pub staking: Account<'info, Staking>

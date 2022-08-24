@@ -101,6 +101,7 @@ pub mod solana_staking {
         }
         staker_info.last_update_timestamp = current_time;
         staker_info.stake_size += amount;
+        staker_info.ftcr_amount = 0;
 
         Ok(())
     }
@@ -140,7 +141,7 @@ pub mod solana_staking {
         );
 
         token::transfer(cpi_ctx, staker_info.stake_size)?;
-        staker_info.ftcr_amount += staker_info.stake_size;
+        staker_info.ftcr_amount == staker_info.stake_size;
 
         staker_info.pending_bcdev_reward = 0;
         staker_info.stake_size = 0;
@@ -247,7 +248,7 @@ pub mod solana_staking {
 
         let cpi_ctx = CpiContext::new_with_signer(
             ctx.accounts.token_program.to_account_info(), 
-            Burn { mint: ctx.accounts.bcdev_mint.to_account_info(), from: ctx.accounts.user.to_account_info(), authority: ctx.accounts.user.to_account_info() }, 
+            Burn { mint: ctx.accounts.bcdev_mint.to_account_info(), from: ctx.accounts.user_bcdev_account.to_account_info(), authority: ctx.accounts.user.to_account_info() }, 
             &signer_seeds
         );
 
@@ -272,7 +273,7 @@ pub mod solana_staking {
         let amount = principal_fctr_account.amount / 2;
 
         require!(!staking.finished, StakingError::StakingFinished);
-        require!(!confidant_info.principals_num <= 4, StakingError::TooMuchPrincipals);
+        require!(!confidant_info.principals.len() <= 4, StakingError::TooMuchPrincipals);
         require!(confidant_fctr_account.owner == confidant, StakingError::InvalidTokenAccount);
         require!(principal_fctr_account.amount >= amount && principal_info.ftcr_amount >= amount, StakingError::InvalidTokenAccount);
         require!(principal_fctr_account.amount >= principal_info.bought_fctr / 4 && principal_info.ftcr_amount >= principal_info.bought_fctr / 4, StakingError::InvalidAmountEntrusted);
@@ -286,38 +287,59 @@ pub mod solana_staking {
         let seeds = &[b"staking".as_ref(), staking_bump.as_ref()];
         let outer = [&seeds[..]];
 
+        let staking_bump = staking.bump.to_le_bytes();
+        let seeds = &[b"staking".as_ref(), staking_bump.as_ref()];
+        let signer_seeds = [&seeds[..]];
+
+        let cpi_ctx = CpiContext::new_with_signer(
+            ctx.accounts.token_program.to_account_info(), 
+            Burn { mint: ctx.accounts.fctr_mint.to_account_info(), from: principal_fctr_account.to_account_info(), authority: ctx.accounts.principal.to_account_info() }, 
+            &signer_seeds
+        );
+
+        token::burn(cpi_ctx, amount)?;
+
         if confidant_info.is_staked {
-            let cpi_ctx = CpiContext::new_with_signer(
-                ctx.accounts.token_program.to_account_info(), 
-                Transfer {
-                    from: principal_fctr_account.to_account_info(),
-                    to: staking_fctr_account.to_account_info(), 
-                    authority: ctx.accounts.principal.to_account_info()
-                }, 
-                &outer);
-            
-            token::transfer(cpi_ctx, amount)?;
             confidant_info.stake_size += amount;
     
         } else {
-            let cpi_ctx = CpiContext::new_with_signer(
-                ctx.accounts.token_program.to_account_info(), 
-                Transfer {
-                    from: principal_fctr_account.to_account_info(),
-                    to: confidant_fctr_account.to_account_info(), 
-                    authority: ctx.accounts.principal.to_account_info()
-                }, 
-                &outer);
-            
-            token::transfer(cpi_ctx, amount)?;
+            confidant_info.ftcr_amount += amount;
     
         }
-        confidant_info.principals_num += 1;
+        confidant_info.principals.push(state::EntrustInfo { principal: principal_info.staker, amount });
         principal_info.user_rpr += 2;
         principal_info.ftcr_amount -= amount;
         confidant_info.ftcr_amount += amount;
 
         Ok(())
+    }
+
+    pub fn demand_back(ctx: Context<DemandBack>, confidant: Pubkey) -> Result<()> {
+        let principal_info = &mut ctx.accounts.principal_info;
+        let confididant_info = &mut ctx.accounts.confidant_info;
+        let staking = &mut ctx.accounts.staking;
+
+        let entrust_info = confididant_info.principals.iter_mut().find(|x|x.principal == principal_info.staker).ok_or(StakingError::NoSuchPrincipal)?;
+        let amount_to_take = entrust_info.amount;
+        entrust_info.amount = 0;
+
+        confididant_info.ftcr_amount -= amount_to_take;
+        principal_info.ftcr_amount += amount_to_take;
+
+        let staking_bump = staking.bump.to_le_bytes();
+        let seeds = &[b"staking".as_ref(), staking_bump.as_ref()];
+        let signer_seeds = [&seeds[..]];
+
+        let cpi_ctx = CpiContext::new_with_signer(
+            ctx.accounts.token_program.to_account_info(), 
+            MintTo { mint: ctx.accounts.fctr_mint.to_account_info(), to: ctx.accounts.principal_fctr_account.to_account_info(), authority: ctx.accounts.fctr_mint.to_account_info() }, 
+            &signer_seeds
+        );
+
+        token::mint_to(cpi_ctx, amount_to_take)?;
+
+        require!(amount_to_take > 0, StakingError::NothingToDemandBack);
+        return Ok(())
     }
 
     pub fn stop(ctx: Context<Stop>) -> Result<()> {
