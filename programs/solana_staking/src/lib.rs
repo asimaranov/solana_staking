@@ -324,7 +324,6 @@ pub mod solana_staking {
 
         if confidant_info.is_staked {
             confidant_info.stake_size += amount;
-    
         } else {
             confidant_info.ftcr_amount += amount;
         }

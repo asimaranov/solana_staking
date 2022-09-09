@@ -13,6 +13,8 @@ describe("solana_staking", () => {
   const program = anchor.workspace.SolanaStaking as Program<SolanaStaking>;
   const owner = (program.provider as anchor.AnchorProvider).wallet;
   const payer = anchor.web3.Keypair.generate();
+  const confidant = anchor.web3.Keypair.generate();
+
   const proofSigner = anchor.web3.Keypair.generate();
 
 
@@ -186,7 +188,6 @@ describe("solana_staking", () => {
 
     await new Promise(r => setTimeout(r, 2000));
 
-    try {
     await program.methods.unstake().accounts({
       staking: stakingPda,
       stakerInfo: stakerInfo,
@@ -196,15 +197,25 @@ describe("solana_staking", () => {
       fctrMint: fctrMint,
     }).rpc();
 
-  } catch(e) {
-    console.log(e)
-  }
-
     userFctrAccount = await getAccount(program.provider.connection, userFctrAccount.address);
     userBcdevAccount = await getAccount(program.provider.connection, userBcdevAccount.address);
 
     expect(userFctrAccount.amount > BigInt(0)).to.be.true;
     expect(userBcdevAccount.amount > BigInt(0)).to.be.true;
+  });
+
+  it("Test entrusting", async () => {
+    const [principalInfo, ] = await anchor.web3.PublicKey.findProgramAddress([utf8.encode("staker-info"), owner.publicKey.toBuffer()], program.programId);
+    const [confidantInfo, ] = await anchor.web3.PublicKey.findProgramAddress([utf8.encode("staker-info"), confidant.publicKey.toBuffer()], program.programId);
+    let principalFctrAccount = await getOrCreateAssociatedTokenAccount(program.provider.connection, payer, fctrMint, owner.publicKey);
+    await program.methods.entrust(confidant.publicKey).accounts({
+      staking: stakingPda,
+      principal: owner.publicKey,
+      principalInfo: principalInfo,
+      confidantInfo: confidantInfo,
+      fctrMint: fctrMint,
+      principalFctrAccount: principalFctrAccount.address
+    }).rpc();
   })
 
 });
