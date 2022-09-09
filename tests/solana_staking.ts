@@ -98,6 +98,7 @@ describe("solana_staking", () => {
     let userFctrAccount = await getOrCreateAssociatedTokenAccount(program.provider.connection, payer, fctrMint, owner.publicKey);
     const lampBalanceBeforeStake = await program.provider.connection.getBalance(owner.publicKey);
     const fctrBalanceBeforeStake = await userFctrAccount.amount;
+    console.log(fctrBalanceBeforeStake);
 
     const lampToTake = testAmount.mul(new BN(anchor.web3.LAMPORTS_PER_SOL)).div(ONE_FCTR).div(new BN(109))
     console.log(`Exchanging ${lampToTake} lamports for ${testAmount} fctr tokens `)
@@ -117,7 +118,8 @@ describe("solana_staking", () => {
     userFctrAccount = await getAccount(program.provider.connection, userFctrAccount.address);
 
     const lampBalanceAfterStake = await program.provider.connection.getBalance(owner.publicKey);
-    expect(lampBalanceBeforeStake).lte(lampBalanceAfterStake - lampToTake.toNumber());
+    expect(lampBalanceAfterStake - lampToTake.toNumber()).lte(lampBalanceBeforeStake);
+    console.log(fctrBalanceBeforeStake, userFctrAccount.amount)
     expect(fctrBalanceBeforeStake - userFctrAccount.amount == BigInt(testAmount.toString(10))).to.be.true;
   })
 
@@ -127,7 +129,7 @@ describe("solana_staking", () => {
     const [stakerInfo, ] = await anchor.web3.PublicKey.findProgramAddress([utf8.encode("staker-info"), owner.publicKey.toBuffer()], program.programId);
     let userBcdevAccount = await getOrCreateAssociatedTokenAccount(program.provider.connection, payer, bcdevMint, owner.publicKey);
     const lampBalanceBeforeStake = await program.provider.connection.getBalance(owner.publicKey);
-    const bcdevBalanceBeforeStake = await userBcdevAccount.amount;
+    const bcdevBalanceBeforeStake = userBcdevAccount.amount;
 
     const lampToTake = testAmount.mul(new BN(anchor.web3.LAMPORTS_PER_SOL)).div(ONE_BCDEV).div(new BN(11))
     console.log(`Exchanging ${lampToTake} lamports for ${testAmount} bcdev tokens `)
@@ -167,11 +169,42 @@ describe("solana_staking", () => {
       staking: stakingPda, 
       stakerInfo: stakerInfo, 
       stakerFctrAccount: userFctrAccount.address,
-      stakingFctrAccount: stakingFctrAccount.address
+      fctrMint: fctrMint
     }).rpc();
 
     userFctrAccount = await getAccount(program.provider.connection, userFctrAccount.address);
     expect(userFctrAccount.amount == BigInt(0)).to.be.true;
+  });
+
+  it("Test unstaking", async () => {
+    const [stakerInfo, ] = await anchor.web3.PublicKey.findProgramAddress([utf8.encode("staker-info"), owner.publicKey.toBuffer()], program.programId);
+    let userFctrAccount = await getOrCreateAssociatedTokenAccount(program.provider.connection, payer, fctrMint, owner.publicKey);
+    let userBcdevAccount = await getOrCreateAssociatedTokenAccount(program.provider.connection, payer, bcdevMint, owner.publicKey);
+
+    expect(userFctrAccount.amount == BigInt(0)).to.be.true;
+    expect(userBcdevAccount.amount == BigInt(0)).to.be.true;
+
+    await new Promise(r => setTimeout(r, 2000));
+
+    try {
+    await program.methods.unstake().accounts({
+      staking: stakingPda,
+      stakerInfo: stakerInfo,
+      stakerFctrAccount: userFctrAccount.address,
+      stakerBcdevAccount: userBcdevAccount.address,
+      bcdevMint: bcdevMint,
+      fctrMint: fctrMint,
+    }).rpc();
+
+  } catch(e) {
+    console.log(e)
+  }
+
+    userFctrAccount = await getAccount(program.provider.connection, userFctrAccount.address);
+    userBcdevAccount = await getAccount(program.provider.connection, userBcdevAccount.address);
+
+    expect(userFctrAccount.amount > BigInt(0)).to.be.true;
+    expect(userBcdevAccount.amount > BigInt(0)).to.be.true;
   })
 
 });

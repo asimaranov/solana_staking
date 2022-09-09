@@ -65,6 +65,7 @@ pub mod solana_staking {
         require!(ctx.accounts.proof_signer.key() == staking.proof_signer, StakingError::StakingFinished);
 
         staker_info.staker = ctx.accounts.staker.key();
+        staker_info.user_rpr = 1;
         staker_info.bump = *ctx.bumps.get("staker_info").unwrap();
         Ok(())
     }
@@ -93,7 +94,7 @@ pub mod solana_staking {
         let current_time = Clock::get().unwrap().unix_timestamp as u64;
         if staker_info.last_update_timestamp > 0 {  // Already staked
             let period = current_time - staker_info.last_update_timestamp;
-            staker_info.pending_bcdev_reward += period * staker_info.ftcr_amount * staker_info.user_rpr;
+            staker_info.pending_bcdev_reward += period * staker_info.stake_size * staker_info.user_rpr;
         }
 
         staker_info.last_update_timestamp = current_time;
@@ -115,8 +116,8 @@ pub mod solana_staking {
 
         let current_time = Clock::get().unwrap().unix_timestamp as u64;
 
-        let period = current_time - staker_info.last_update_timestamp;
-        staker_info.pending_bcdev_reward += period * staker_info.ftcr_amount * staker_info.user_rpr;
+        let period = current_time - staker_info.last_update_timestamp;        
+        staker_info.pending_bcdev_reward += period * staker_info.stake_size * staker_info.user_rpr;
 
         let staking_bump = staking.bump.to_le_bytes();
         let seeds = &[b"staking".as_ref(), staking_bump.as_ref()];
@@ -159,8 +160,9 @@ pub mod solana_staking {
             &signer_seeds
         );
 
-        let reward_to_give_to_user = staker_info.pending_bcdev_reward * amount_to_give_to_user / staker_info.stake_size;
+        let reward_to_give_to_user = (staker_info.pending_bcdev_reward as u128 * amount_to_give_to_user as u128 / staker_info.stake_size as u128) as u64;
         token::mint_to(cpi_ctx, reward_to_give_to_user)?;
+
         staker_info.bcdev_amount += reward_to_give_to_user;
 
         let cpi_ctx = CpiContext::new_with_signer(
@@ -188,7 +190,7 @@ pub mod solana_staking {
 
         let current_time = Clock::get().unwrap().unix_timestamp as u64;
         let period = current_time - staker_info.last_update_timestamp;
-        staker_info.pending_bcdev_reward += period * staker_info.ftcr_amount * staker_info.user_rpr;
+        staker_info.pending_bcdev_reward += period * staker_info.stake_size * staker_info.user_rpr;
         staker_info.last_update_timestamp = current_time;
 
         staker_info.bought_fctr += amount;
