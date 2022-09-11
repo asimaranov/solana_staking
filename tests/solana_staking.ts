@@ -18,7 +18,7 @@ describe("solana_staking", () => {
   const proofSigner = anchor.web3.Keypair.generate();
 
 
-  const testRoundTime = new anchor.BN(60*60*24);
+  const testRoundTime = new anchor.BN(60 * 60 * 24);
   let fctrMint: anchor.web3.PublicKey;
   let bcdevMint: anchor.web3.PublicKey;
 
@@ -34,8 +34,8 @@ describe("solana_staking", () => {
     await program.provider.connection.confirmTransaction(await program.provider.connection.requestAirdrop(payer.publicKey, 10000 * anchor.web3.LAMPORTS_PER_SOL));
     await program.provider.connection.confirmTransaction(await program.provider.connection.requestAirdrop(confidant.publicKey, 10000 * anchor.web3.LAMPORTS_PER_SOL));
 
-    [stakingPda, ] = await anchor.web3.PublicKey.findProgramAddress([utf8.encode("staking")], program.programId);
-    
+    [stakingPda,] = await anchor.web3.PublicKey.findProgramAddress([utf8.encode("staking")], program.programId);
+
     fctrMint = await createMint(program.provider.connection, payer, stakingPda, null, 12);
     bcdevMint = await createMint(program.provider.connection, payer, stakingPda, null, 18);
 
@@ -50,7 +50,7 @@ describe("solana_staking", () => {
   });
 
   it("Test user registration", async () => {
-    const [stakerInfo, ] = await anchor.web3.PublicKey.findProgramAddress([utf8.encode("staker-info"), owner.publicKey.toBuffer()], program.programId);
+    const [stakerInfo,] = await anchor.web3.PublicKey.findProgramAddress([utf8.encode("staker-info"), owner.publicKey.toBuffer()], program.programId);
 
     await program.methods.register().accounts({
       staker: owner.publicKey,
@@ -63,7 +63,7 @@ describe("solana_staking", () => {
   it("Test fctr buying", async () => {
     const testAmount = new BN(10).mul(ONE_FCTR);
 
-    const [stakerInfo, ] = await anchor.web3.PublicKey.findProgramAddress([utf8.encode("staker-info"), owner.publicKey.toBuffer()], program.programId);
+    const [stakerInfo,] = await anchor.web3.PublicKey.findProgramAddress([utf8.encode("staker-info"), owner.publicKey.toBuffer()], program.programId);
     let userFctrAccount = await getOrCreateAssociatedTokenAccount(program.provider.connection, payer, fctrMint, owner.publicKey);
     const lampBalanceBeforeStake = await program.provider.connection.getBalance(owner.publicKey);
     const fctrBalanceBeforeStake = await userFctrAccount.amount;
@@ -78,7 +78,7 @@ describe("solana_staking", () => {
       stakerInfo: stakerInfo,
       userFctrAccount: userFctrAccount.address
     }).rpc();
-    
+
     userFctrAccount = await getAccount(program.provider.connection, userFctrAccount.address);
 
     const lampBalanceAfterStake = await program.provider.connection.getBalance(owner.publicKey);
@@ -97,7 +97,7 @@ describe("solana_staking", () => {
   it("Test fctr selling", async () => {
     const testAmount = new BN(10).mul(ONE_FCTR);
 
-    const [stakerInfo, ] = await anchor.web3.PublicKey.findProgramAddress([utf8.encode("staker-info"), owner.publicKey.toBuffer()], program.programId);
+    const [stakerInfo,] = await anchor.web3.PublicKey.findProgramAddress([utf8.encode("staker-info"), owner.publicKey.toBuffer()], program.programId);
     let userFctrAccount = await getOrCreateAssociatedTokenAccount(program.provider.connection, payer, fctrMint, owner.publicKey);
     const lampBalanceBeforeStake = await program.provider.connection.getBalance(owner.publicKey);
     const fctrBalanceBeforeStake = await userFctrAccount.amount;
@@ -105,19 +105,19 @@ describe("solana_staking", () => {
 
     const lampToTake = testAmount.mul(new BN(anchor.web3.LAMPORTS_PER_SOL)).div(ONE_FCTR).div(new BN(109))
     console.log(`Exchanging ${lampToTake} lamports for ${testAmount} fctr tokens `)
-    try{
-    await program.methods.sellFctr(testAmount).accounts({
-      staking: stakingPda,
-      fctrMint: fctrMint,
-      user: owner.publicKey,
-      stakerInfo: stakerInfo,
-      userFctrAccount: userFctrAccount.address,
-      serviceFctrAccount: stakingFctrAccount.address
-    }).rpc();
-  } catch (e) {
-    console.log(e)
-  }
-    
+    try {
+      await program.methods.sellFctr(testAmount).accounts({
+        staking: stakingPda,
+        fctrMint: fctrMint,
+        user: owner.publicKey,
+        stakerInfo: stakerInfo,
+        userFctrAccount: userFctrAccount.address,
+        serviceFctrAccount: stakingFctrAccount.address
+      }).rpc();
+    } catch (e) {
+      console.log(e)
+    }
+
     userFctrAccount = await getAccount(program.provider.connection, userFctrAccount.address);
 
     const lampBalanceAfterStake = await program.provider.connection.getBalance(owner.publicKey);
@@ -129,7 +129,7 @@ describe("solana_staking", () => {
   it("Test bcdev selling", async () => {
     const testAmount = new BN(10).mul(ONE_BCDEV);
 
-    const [stakerInfo, ] = await anchor.web3.PublicKey.findProgramAddress([utf8.encode("staker-info"), owner.publicKey.toBuffer()], program.programId);
+    const [stakerInfo,] = await anchor.web3.PublicKey.findProgramAddress([utf8.encode("staker-info"), owner.publicKey.toBuffer()], program.programId);
     let userBcdevAccount = await getOrCreateAssociatedTokenAccount(program.provider.connection, payer, bcdevMint, owner.publicKey);
     const lampBalanceBeforeStake = await program.provider.connection.getBalance(owner.publicKey);
     const bcdevBalanceBeforeStake = userBcdevAccount.amount;
@@ -145,7 +145,7 @@ describe("solana_staking", () => {
       userBcdevAccount: userBcdevAccount.address,
       serviceBcdevAccount: stakingBcdevAccount.address
     }).rpc();
-    
+
     userBcdevAccount = await getAccount(program.provider.connection, userBcdevAccount.address);
 
     const lampBalanceAfterStake = await program.provider.connection.getBalance(owner.publicKey);
@@ -155,7 +155,7 @@ describe("solana_staking", () => {
 
   it("Test staking", async () => {
     const testAmount = new BN(10).mul(ONE_FCTR);
-    const [stakerInfo, ] = await anchor.web3.PublicKey.findProgramAddress([utf8.encode("staker-info"), owner.publicKey.toBuffer()], program.programId);
+    const [stakerInfo,] = await anchor.web3.PublicKey.findProgramAddress([utf8.encode("staker-info"), owner.publicKey.toBuffer()], program.programId);
     let userFctrAccount = await getOrCreateAssociatedTokenAccount(program.provider.connection, payer, fctrMint, owner.publicKey);
 
     await program.methods.buyFctr(testAmount).accounts({
@@ -169,8 +169,8 @@ describe("solana_staking", () => {
     expect(userFctrAccount.amount > 0).to.be.true;
 
     await program.methods.stake().accounts({
-      staking: stakingPda, 
-      stakerInfo: stakerInfo, 
+      staking: stakingPda,
+      stakerInfo: stakerInfo,
       stakerFctrAccount: userFctrAccount.address,
       fctrMint: fctrMint
     }).rpc();
@@ -180,7 +180,7 @@ describe("solana_staking", () => {
   });
 
   it("Test unstaking", async () => {
-    const [stakerInfo, ] = await anchor.web3.PublicKey.findProgramAddress([utf8.encode("staker-info"), owner.publicKey.toBuffer()], program.programId);
+    const [stakerInfo,] = await anchor.web3.PublicKey.findProgramAddress([utf8.encode("staker-info"), owner.publicKey.toBuffer()], program.programId);
     let userFctrAccount = await getOrCreateAssociatedTokenAccount(program.provider.connection, payer, fctrMint, owner.publicKey);
     let userBcdevAccount = await getOrCreateAssociatedTokenAccount(program.provider.connection, payer, bcdevMint, owner.publicKey);
 
@@ -206,28 +206,31 @@ describe("solana_staking", () => {
   });
 
   it("Test entrusting", async () => {
-    const [principalInfo, ] = await anchor.web3.PublicKey.findProgramAddress([utf8.encode("staker-info"), owner.publicKey.toBuffer()], program.programId);
-    const [confidantInfo, ] = await anchor.web3.PublicKey.findProgramAddress([utf8.encode("staker-info"), confidant.publicKey.toBuffer()], program.programId);
+    const [principalInfo,] = await anchor.web3.PublicKey.findProgramAddress([utf8.encode("staker-info"), owner.publicKey.toBuffer()], program.programId);
+    const [confidantInfo,] = await anchor.web3.PublicKey.findProgramAddress([utf8.encode("staker-info"), confidant.publicKey.toBuffer()], program.programId);
 
 
     let principalFctrAccount = await getOrCreateAssociatedTokenAccount(program.provider.connection, payer, fctrMint, owner.publicKey);
 
-      await program.methods.register().accounts({
-        staker: confidant.publicKey,
-        stakerInfo: confidantInfo,
-        staking: stakingPda,
-        proofSigner: proofSigner.publicKey
-      }).signers([confidant, proofSigner]).rpc()
-  
-    await program.methods.entrust(confidant.publicKey).accounts({
+    await program.methods.register().accounts({
+      staker: confidant.publicKey,
+      stakerInfo: confidantInfo,
       staking: stakingPda,
-      principal: owner.publicKey,
-      principalInfo: principalInfo,
-      confidantInfo: confidantInfo,
-      fctrMint: fctrMint,
-      principalFctrAccount: principalFctrAccount.address
-    }).rpc();
-    
+      proofSigner: proofSigner.publicKey
+    }).signers([confidant, proofSigner]).rpc()
+    try {
+      await program.methods.entrust(confidant.publicKey).accounts({
+        staking: stakingPda,
+        principal: owner.publicKey,
+        principalInfo: principalInfo,
+        confidantInfo: confidantInfo,
+        fctrMint: fctrMint,
+        principalFctrAccount: principalFctrAccount.address
+      }).rpc();
+    } catch (e) {
+      console.log(e)
+    }
+
   })
 
 });
