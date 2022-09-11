@@ -31,8 +31,8 @@ describe("solana_staking", () => {
 
 
   it("Is initialized!", async () => {
-    await program.provider.connection.confirmTransaction(await program.provider.connection.requestAirdrop(payer.publicKey, 10000 * anchor.web3.LAMPORTS_PER_SOL));
-    await program.provider.connection.confirmTransaction(await program.provider.connection.requestAirdrop(confidant.publicKey, 10000 * anchor.web3.LAMPORTS_PER_SOL));
+    await program.provider.connection.confirmTransaction(await program.provider.connection.requestAirdrop(payer.publicKey, 100000 * anchor.web3.LAMPORTS_PER_SOL));
+    await program.provider.connection.confirmTransaction(await program.provider.connection.requestAirdrop(confidant.publicKey, 100000 * anchor.web3.LAMPORTS_PER_SOL));
 
     [stakingPda,] = await anchor.web3.PublicKey.findProgramAddress([utf8.encode("staking")], program.programId);
 
@@ -211,6 +211,7 @@ describe("solana_staking", () => {
 
 
     let principalFctrAccount = await getOrCreateAssociatedTokenAccount(program.provider.connection, payer, fctrMint, owner.publicKey);
+    let confidantFctrAccount = await getOrCreateAssociatedTokenAccount(program.provider.connection, payer, fctrMint, confidant.publicKey);
 
     await program.methods.register().accounts({
       staker: confidant.publicKey,
@@ -228,9 +229,25 @@ describe("solana_staking", () => {
         principalFctrAccount: principalFctrAccount.address
       }).rpc();
     } catch (e) {
-      console.log(e)
+      expect(e.error.errorCode.code).to.equal('InvalidDepositDiff'); // Доверять и принимать FCTR-токены можно только от участника с депозитом от 50 до 200% от собственного(купившим с платформы от половины до двух частей).
     }
 
+    await program.methods.buyFctr(new BN((principalFctrAccount.amount / BigInt(2)).toString())).accounts({
+      staking: stakingPda,
+      fctrMint: fctrMint,
+      user: confidant.publicKey,
+      stakerInfo: confidantInfo,
+      userFctrAccount: confidantFctrAccount.address
+    }).signers([confidant]).rpc();
+
+    await program.methods.entrust(confidant.publicKey).accounts({
+      staking: stakingPda,
+      principal: owner.publicKey,
+      principalInfo: principalInfo,
+      confidantInfo: confidantInfo,
+      fctrMint: fctrMint,
+      principalFctrAccount: principalFctrAccount.address
+    }).rpc();
   })
 
 });
