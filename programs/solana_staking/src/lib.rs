@@ -301,7 +301,7 @@ pub mod solana_staking {
         let amount = principal_fctr_account.amount / 2;
 
         require!(!staking.finished, StakingError::StakingFinished);
-        require!(!confidant_info.principals.len() <= 4, StakingError::TooMuchPrincipals);
+        require!(confidant_info.principals.len() <= 4, StakingError::TooMuchPrincipals);
         require!(principal_fctr_account.amount >= amount && principal_info.ftcr_amount >= amount, StakingError::InvalidTokenAccount);
         require!(principal_fctr_account.amount >= principal_info.bought_fctr / 4 && principal_info.ftcr_amount >= principal_info.bought_fctr / 4, StakingError::InvalidAmountEntrusted);
         require!(confidant_info.ftcr_amount / 2 >= principal_info.ftcr_amount && principal_info.ftcr_amount >= confidant_info.ftcr_amount * 2, StakingError::InvalidDepositDiff);

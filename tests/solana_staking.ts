@@ -31,7 +31,8 @@ describe("solana_staking", () => {
 
 
   it("Is initialized!", async () => {
-    await program.provider.connection.confirmTransaction(await program.provider.connection.requestAirdrop(payer.publicKey, 1000000 * anchor.web3.LAMPORTS_PER_SOL));
+    await program.provider.connection.confirmTransaction(await program.provider.connection.requestAirdrop(payer.publicKey, 10000 * anchor.web3.LAMPORTS_PER_SOL));
+    await program.provider.connection.confirmTransaction(await program.provider.connection.requestAirdrop(confidant.publicKey, 10000 * anchor.web3.LAMPORTS_PER_SOL));
 
     [stakingPda, ] = await anchor.web3.PublicKey.findProgramAddress([utf8.encode("staking")], program.programId);
     
@@ -207,7 +208,17 @@ describe("solana_staking", () => {
   it("Test entrusting", async () => {
     const [principalInfo, ] = await anchor.web3.PublicKey.findProgramAddress([utf8.encode("staker-info"), owner.publicKey.toBuffer()], program.programId);
     const [confidantInfo, ] = await anchor.web3.PublicKey.findProgramAddress([utf8.encode("staker-info"), confidant.publicKey.toBuffer()], program.programId);
+
+
     let principalFctrAccount = await getOrCreateAssociatedTokenAccount(program.provider.connection, payer, fctrMint, owner.publicKey);
+
+      await program.methods.register().accounts({
+        staker: confidant.publicKey,
+        stakerInfo: confidantInfo,
+        staking: stakingPda,
+        proofSigner: proofSigner.publicKey
+      }).signers([confidant, proofSigner]).rpc()
+  
     await program.methods.entrust(confidant.publicKey).accounts({
       staking: stakingPda,
       principal: owner.publicKey,
@@ -216,6 +227,7 @@ describe("solana_staking", () => {
       fctrMint: fctrMint,
       principalFctrAccount: principalFctrAccount.address
     }).rpc();
+    
   })
 
 });
