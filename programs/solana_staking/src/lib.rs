@@ -14,7 +14,7 @@ pub mod solana_staking {
     use std::cmp::min;
 
     use anchor_lang::solana_program::{native_token::LAMPORTS_PER_SOL, system_instruction, program::invoke};
-    use anchor_spl::token::{Transfer, self, MintTo, Burn, TokenAccount};
+    use anchor_spl::token::{self, MintTo, Burn, TokenAccount};
 
     use crate::state::StakerInfo;
 
@@ -287,7 +287,6 @@ pub mod solana_staking {
         staking.total_bcdev_sold_by_users += amount;
         staker_info.bcdev_amount -= amount;
 
-
         Ok(())
     }
 
@@ -376,6 +375,4 @@ pub mod solana_staking {
         staking.finish_time = current_time;
         return Ok(());
     }
-
 }
-

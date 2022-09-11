@@ -209,7 +209,6 @@ describe("solana_staking", () => {
     const [principalInfo,] = await anchor.web3.PublicKey.findProgramAddress([utf8.encode("staker-info"), owner.publicKey.toBuffer()], program.programId);
     const [confidantInfo,] = await anchor.web3.PublicKey.findProgramAddress([utf8.encode("staker-info"), confidant.publicKey.toBuffer()], program.programId);
 
-
     let principalFctrAccount = await getOrCreateAssociatedTokenAccount(program.provider.connection, payer, fctrMint, owner.publicKey);
     let confidantFctrAccount = await getOrCreateAssociatedTokenAccount(program.provider.connection, payer, fctrMint, confidant.publicKey);
 
@@ -248,6 +247,23 @@ describe("solana_staking", () => {
       fctrMint: fctrMint,
       principalFctrAccount: principalFctrAccount.address
     }).rpc();
+  });
+
+  it("Test demanding back", async () => {
+    const [principalInfo,] = await anchor.web3.PublicKey.findProgramAddress([utf8.encode("staker-info"), owner.publicKey.toBuffer()], program.programId);
+    const [confidantInfo,] = await anchor.web3.PublicKey.findProgramAddress([utf8.encode("staker-info"), confidant.publicKey.toBuffer()], program.programId);
+
+    let principalFctrAccount = await getOrCreateAssociatedTokenAccount(program.provider.connection, payer, fctrMint, owner.publicKey);
+    let confidantFctrAccount = await getOrCreateAssociatedTokenAccount(program.provider.connection, payer, fctrMint, confidant.publicKey);
+
+    await program.methods.demandBack(confidant.publicKey).accounts({
+      staking: stakingPda,
+      principal: owner.publicKey,
+      principalInfo: principalInfo,
+      confidantInfo: confidantInfo,
+      fctrMint: fctrMint,
+      principalFctrAccount: principalFctrAccount.address,
+    })
   })
 
 });
